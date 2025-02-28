@@ -1,0 +1,49 @@
+.displayData {
+  margin-top: 2em;
+  display: flex;
+  justify-content: center;
+  padding: 0.5em;
+}
+
+.displayData thead th {
+  text-align: left;
+  transition: all 0.2s ease-in-out;
+}
+
+.displayData table {
+  background-color: white;
+  width: 100%;
+  padding-top: 1em;
+  border-spacing: 1px;
+  border-collapse: collapse;
+}
+
+.displayData td,
+.displayData th {
+  border: 0.5px solid rgb(0, 0, 0);
+  padding: 8px;
+}
+
+.displayData tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+tr {
+    display: table-row;
+    vertical-align: initial;
+    unicode-bidi: isolate;
+    border-color: inherit;
+}
+
+.displayData th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: rgb(0, 211, 148);
+  color: white;
+}
+
+.noFileContainer {
+  text-align: center;
+  margin-top: 2em;
+}

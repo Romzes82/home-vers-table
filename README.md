@@ -1,70 +1,13 @@
-# Getting Started with Create React App
+перед загрузкой проверить все инн и телефоны тк, результат записать в V и F
+при изменении значения в F будет добавляться массив адресов в V
+т.е в DisplayData в handleChange надо еще вызывать поиск в бд адресов но названию тк, результат толко F записываем в LocFor через onCellChange
+касательно V при его изменении тоже записываем результат в LocFor через onCellChange, но уже другим хендлером(выбранный адрес будет 1ым в массиве)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+доработать handleUpload с учетом того, что надо обновить и V
+сделать заглушки для V, типа для всех строк в V массив ['адрес_1','адрес_2']
+как бы проверить новые строки - по значениям счетов, если новый, то в стобце Х прописать new. В то же время надо проверить вообще все значения стобцов, итог: либо new, del, change_NAME_COLUMN/или просто имя столбца
+и тогда на странице имея классы закрышиваем красным номер п/п или счета, del - всю строку, а change_NAME_COLUMN - надо как-то закрасить именно ту колонку
+это потом, а сейчас
 
-## Available Scripts
-
-In the project directory, you can run:
-
-### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+самое главное сохранять в locFor F как строку, и V  как массив!!!
+мотом тупо соритровка и как-то по условиям наличия адреса подчеркивание строки
