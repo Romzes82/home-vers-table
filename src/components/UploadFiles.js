@@ -12,6 +12,7 @@ import { TABLE_HEAD } from '../utils/constants';
 import './UploadFiles.css';
 
 const UploadFiles = ({ onUpload }) => {
+    // alert("AAA");
     const [isLoading, setIsLoading] = useState(false);
 
     const [error, setError] = useState('');
