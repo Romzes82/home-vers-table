@@ -8,38 +8,53 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
     const [mask, setMask] = useState(COLUMN_ORDER);
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [showSumPanel, setShowSumPanel] = useState(false);
+    const [isCompact, setIsCompact] = useState(false);
 
-  // Обработчик клика по строке
-  const handleRowClick = (e, row) => {
-      if (e.ctrlKey || e.metaKey) {
-          setShowSumPanel(true);
-          e.preventDefault();
-          setSelectedIds((prev) => {
-              const newSet = new Set(prev);
-              newSet.has(row.B) ? newSet.delete(row.B) : newSet.add(row.B);
-              return newSet;
-          });
-      }
-  };
+    // Стили для компактного режима
 
-  // Вычисление сумм
-  const { sumJ, sumK } = useMemo(() => {
-      let j = 0,
-          k = 0;
-      data.forEach((row) => {
-          if (selectedIds.has(row.B)) {
-              j += Number(row.J) || 0;
-              k += Number(row.K) || 0;
-          }
-      });
-      return { sumJ: j.toFixed(2), sumK: k.toFixed(2) };
-  }, [data, selectedIds]);
+    const compactStyles = {
+        tr: {
+            height: '30px', // Фиксированная высота строки
+        },
+        td: {
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            maxWidth: '200px', // Можно настроить под ваши нужды
+        },
+    };
 
-  // Сброс выделения
-  const resetSelection = () => {
-      setSelectedIds(new Set());
-      setShowSumPanel(false);
-  };    
+    // Обработчик клика по строке
+    const handleRowClick = (e, row) => {
+        if (e.ctrlKey || e.metaKey) {
+            setShowSumPanel(true);
+            e.preventDefault();
+            setSelectedIds((prev) => {
+                const newSet = new Set(prev);
+                newSet.has(row.B) ? newSet.delete(row.B) : newSet.add(row.B);
+                return newSet;
+            });
+        }
+    };
+
+    // Вычисление сумм
+    const { sumJ, sumK } = useMemo(() => {
+        let j = 0,
+            k = 0;
+        data.forEach((row) => {
+            if (selectedIds.has(row.B)) {
+                j += Number(row.J) || 0;
+                k += Number(row.K) || 0;
+            }
+        });
+        return { sumJ: j.toFixed(2), sumK: k.toFixed(2) };
+    }, [data, selectedIds]);
+
+    // Сброс выделения
+    const resetSelection = () => {
+        setSelectedIds(new Set());
+        setShowSumPanel(false);
+    };
 
     // // фильтрация и упорядочивание столбцов
     // const headers = customColumnOrder
@@ -239,6 +254,12 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                     ? 'Показать все стоблцы'
                     : 'Скрыть неиспользуемые столбцы'}
             </button>
+            <button
+                onClick={() => setIsCompact(!isCompact)}
+                style={{ margin: '10px 5px', padding: '5px 15px' }}
+            >
+                {isCompact ? 'Обычный вид' : 'Компактный вид'}
+            </button>
             <StatsPanel data={data} />
             {showSumPanel && (
                 <div
@@ -250,6 +271,7 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                         display: 'flex',
                         gap: '20px',
                         alignItems: 'center',
+                        // position: 'fixed'
                     }}
                 >
                     <div>
@@ -298,6 +320,7 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                         <tr
                             key={row.B}
                             onClick={(e) => handleRowClick(e, row)}
+                            // style={isCompact ? compactStyles.tr : {}}
                             style={{
                                 // backgroundColor: row.V[0]  ? 'lightgray' : 'none',
                                 borderTop: row.V[0]
@@ -312,6 +335,7 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                                     : 'transparent',
 
                                 transition: 'background-color 0.2s',
+                            ...(isCompact ? compactStyles.td : {}),
                             }}
                         >
                             {/* {alert(rowIndex)} */}
@@ -321,6 +345,7 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                                     style={{
                                         border: '1px solid #ddd',
                                         ...getCellStyle(header, row),
+                                        ...(isCompact ? compactStyles.td : {}),
                                     }}
                                 >
                                     {header === 'F' ? (
