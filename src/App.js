@@ -49,22 +49,53 @@ export default function App() {
 
     // Обработка новых данных из файла
     const handleUpload = (newData) => {
+       // сохраняем предыдущую версию данных перед обновлением
+      const previousData = fileHistory.current;
+
+      // обновляем историю файлов  
       setFileHistory(prev => ({
         current: newData,
         previous: prev.current // сохраняем предыдущую версию
-      }));  
-      setTableData((prev) => {
-        // console.log(prev[0].F);
-        // console.log(newData[0].F);
-            // Объединяем новые данные с существующими, сохраняя изменения столбца F
-          const merged = newData.map((row, index) => (
-            {
-                ...row,
-                F: prev[index]?.F || row.F,
-                V: prev[index]?.V || row.V,
-            }));
-            return merged;
-        });
+      }));
+        
+        // находим удаленные строки
+        const removedRows = previousData.filter(prevRow => 
+          !newData.some(newRow => newRow.B === prevRow.B)
+        )
+
+        // alert для удаленных строк
+        if (removedRows.length > 0) {
+            const removedInvoices = removedRows.map(row => row.B).join(', ');
+            alert(`Удалены счета : ${removedInvoices}`);
+            console.log(`Удалены счета : ${removedInvoices}`);
+        }
+        
+    //   setTableData1((prev) => {
+    //     // console.log(prev[0].F);
+    //     // console.log(newData[0].F);
+    //         // Объединяем новые данные с существующими, сохраняя изменения столбца F
+    //       const merged = newData.map((row, index) => (
+    //         {
+    //             ...row,
+    //             F: prev[index]?.F || row.F,
+    //             V: prev[index]?.V || row.V,
+    //         }));
+    //         return merged;
+    //   });
+        
+        setTableData((prev) => 
+            newData.map(newRow => { 
+                const exisningRow = prev.find(r => r.B === newRow.B);
+                return exisningRow
+                    ? {
+                          ...newRow,
+                          F: exisningRow.F,
+                          V: exisningRow.V,
+                      }
+                    : newRow;
+            })
+        );  
+
     };
 
     return (

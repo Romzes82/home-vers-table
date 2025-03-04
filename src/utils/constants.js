@@ -29,3 +29,34 @@ export const TABLE_HEAD = {
     U: 'Штрихкод',
     V: 'Адрес на карте',
 };
+
+// желаемый порядок столбцов
+export const COLUMN_ORDER = [
+    'A',
+    'B',
+    'E',
+    'G',
+    'J',
+    'K',
+    'Q',
+    'F',
+    'V',
+    'L',
+    'M',
+];
+// столбцы скрываемые
+export const COLUMN_HIDDEN = [
+    'C',
+    'D',
+    'H',
+    'G',
+    'I',
+    'N',
+    'O',
+    'P',
+    'R',
+    'S',
+    'T',
+    'U',
+    'D',
+];
