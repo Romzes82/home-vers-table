@@ -1,13 +1,45 @@
 // import "./DisplayData.css";
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import StatsPanel from './StatsPanel';
 import { COLUMN_HIDDEN, COLUMN_ORDER } from '../utils/constants';
-
-
 
 export default function DisplayData({ data, onCellChange, fileHistory }) {
     const [hiddenColumns, setHiddenColumns] = useState(COLUMN_HIDDEN);
     const [mask, setMask] = useState(COLUMN_ORDER);
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    const [showSumPanel, setShowSumPanel] = useState(false);
+
+  // Обработчик клика по строке
+  const handleRowClick = (e, row) => {
+      if (e.ctrlKey || e.metaKey) {
+          setShowSumPanel(true);
+          e.preventDefault();
+          setSelectedIds((prev) => {
+              const newSet = new Set(prev);
+              newSet.has(row.B) ? newSet.delete(row.B) : newSet.add(row.B);
+              return newSet;
+          });
+      }
+  };
+
+  // Вычисление сумм
+  const { sumJ, sumK } = useMemo(() => {
+      let j = 0,
+          k = 0;
+      data.forEach((row) => {
+          if (selectedIds.has(row.B)) {
+              j += Number(row.J) || 0;
+              k += Number(row.K) || 0;
+          }
+      });
+      return { sumJ: j.toFixed(2), sumK: k.toFixed(2) };
+  }, [data, selectedIds]);
+
+  // Сброс выделения
+  const resetSelection = () => {
+      setSelectedIds(new Set());
+      setShowSumPanel(false);
+  };    
 
     // // фильтрация и упорядочивание столбцов
     // const headers = customColumnOrder
@@ -208,6 +240,43 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                     : 'Скрыть неиспользуемые столбцы'}
             </button>
             <StatsPanel data={data} />
+            {showSumPanel && (
+                <div
+                    style={{
+                        padding: '10px',
+                        margin: '10px 0',
+                        backgroundColor: '#f5f5f5',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        gap: '20px',
+                        alignItems: 'center',
+                    }}
+                >
+                    <div>
+                        <strong>Выделено строк:</strong> {selectedIds.size}
+                    </div>
+                    <div>
+                        <strong>Сумма J:</strong> {sumJ}
+                    </div>
+                    <div>
+                        <strong>Сумма K:</strong> {sumK}
+                    </div>
+
+                    <button
+                        onClick={resetSelection}
+                        style={{
+                            padding: '5px 10px',
+                            backgroundColor: '#ff9900',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '3px',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        Сбросить
+                    </button>
+                </div>
+            )}
             {/* <datalist id="addressList">
                 {addresses.map((address, index) => (
                     <option key={index} value={ address} />
@@ -228,6 +297,7 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                     {sortedData.map((row, rowIndex) => (
                         <tr
                             key={row.B}
+                            onClick={(e) => handleRowClick(e, row)}
                             style={{
                                 // backgroundColor: row.V[0]  ? 'lightgray' : 'none',
                                 borderTop: row.V[0]
@@ -235,6 +305,13 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                                     : 'none',
                                 // border: row.V[0] ? '2px solid blue' : 'none',
                                 position: 'relative',
+                                // cursor: 'pointer',
+
+                                backgroundColor: selectedIds.has(row.B)
+                                    ? '#e0e0e0'
+                                    : 'transparent',
+
+                                transition: 'background-color 0.2s',
                             }}
                         >
                             {/* {alert(rowIndex)} */}
