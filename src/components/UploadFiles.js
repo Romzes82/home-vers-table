@@ -60,8 +60,19 @@ const UploadFiles = ({ onUpload }) => {
                     processed[elemInArr] = '';
                 }
 
-                // element['V'] = [];
+                // дополнительные столбцы;
                 processed['V'] = [];
+                processed['W'] = '';
+                // {
+                //     value: '', //текущее значение
+                //     options: ['', 'Т', 'Д']
+                // };
+                processed['X'] = 0;
+                // {
+                //     value: 0, //текущее значение
+                //     options: [0, 1, 2, 3, 4, 5],
+                // };
+                processed['Y'] = '';
             });
 
             return processed;
@@ -105,10 +116,22 @@ const UploadFiles = ({ onUpload }) => {
                                             P: '',
                                             Q: '',
                                             R: '',
-                                            S: '',
+                                            S: 999111999,
                                             T: '',
                                             U: '',
                                             V: [],
+                                            W: '',
+                                            X: 0,
+                                            Y: '',
+                                            // W: {
+                                            //     value: '', //текущее значение
+                                            //     options: ['', 'Т', 'Д'],
+                                            // },
+                                            // X: {
+                                            //     value: 0, //текущее значение
+                                            //     options: [0, 1, 2, 3, 4, 5],
+                                            // },
+                                            // Y: '',
                                         }));
                                     resolve(lines);
                     

@@ -1,7 +1,8 @@
-// import "./DisplayData.css";
-import { useState, useMemo } from 'react';
+import './DisplayData.css';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import StatsPanel from './StatsPanel';
 import { COLUMN_HIDDEN, COLUMN_ORDER } from '../utils/constants';
+import { EditableCell } from './EditableCell';
 
 export default function DisplayData({ data, onCellChange, fileHistory }) {
     const [hiddenColumns, setHiddenColumns] = useState(COLUMN_HIDDEN);
@@ -9,12 +10,36 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [showSumPanel, setShowSumPanel] = useState(false);
     const [isCompact, setIsCompact] = useState(false);
+    const cellsRef = useRef([]);
+    const textareaRef = useRef(null);
+
+    //для nextarea столбец Y
+    const handeleInput = () => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height =
+                textareaRef.current.style.scrollWidth + 'px';
+        }
+    };
+
+    // Проверка обрезания текста и обновление title
+    useEffect(() => {
+        cellsRef.current.forEach((cell) => {
+            if (cell) {
+                if (cell && isCompact) {
+                    const isTruncated = cell.scrollWidth > cell.clientWidth;
+                    cell.title = isTruncated ? cell.textContent : '';
+                } else {
+                    cell.title = '';
+                }
+            }
+        });
+    }, [isCompact, data]);
 
     // Стили для компактного режима
-
     const compactStyles = {
         tr: {
-            height: '30px', // Фиксированная высота строки
+            // height: '30px', // Фиксированная высота строки
         },
         td: {
             whiteSpace: 'nowrap',
@@ -148,7 +173,16 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
     // }
 
     const getCellStyle = (header, rowIndex, value) => {
+
         const styles = { padding: '8px' };
+
+        if (header === 'Y') { 
+            styles.position = 'relative';
+            styles.minWidth = '200px';
+            return styles;
+        }
+        // const styles = { padding: '8px' };
+        // const styles = { padding: '0', position: 'relative' };
 
         // Стилизация для столбца A исходя из зачения value в ключе A
         // if (header === "A") {
@@ -335,17 +369,31 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                                     : 'transparent',
 
                                 transition: 'background-color 0.2s',
-                            ...(isCompact ? compactStyles.td : {}),
+                                ...(isCompact ? compactStyles.td : {}),
                             }}
                         >
                             {/* {alert(rowIndex)} */}
-                            {filterHeaders.map((header) => (
+                            {filterHeaders.map((header, cellIndex) => (
                                 <td
                                     key={header}
+                                    ref={(el) =>
+                                        (cellsRef.current[
+                                            rowIndex * 100 + cellIndex
+                                        ] = el)
+                                    }
                                     style={{
                                         border: '1px solid #ddd',
                                         ...getCellStyle(header, row),
                                         ...(isCompact ? compactStyles.td : {}),
+                                        // position: 'relative',
+                                        // minWidth: '200px'
+                                        // width: '400em',
+                                        // ...(isCompact && {
+                                        //     whiteSpace: 'nowrap',
+                                        //     overflow: 'hidden',
+                                        //     textOverflow: 'ellipsis',
+                                        //     maxWidth: '200px',
+                                        // }),
                                     }}
                                 >
                                     {header === 'F' ? (
@@ -387,6 +435,38 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                                                 )}
                                             </datalist>
                                         </>
+                                    ) : header === 'Y' ? (
+                                        // <EditableCell
+                                        //     value={}
+                                        //     onChange={}
+                                        // />
+                                        <textarea
+                                            ref={textareaRef}
+                                            type="text"
+                                            defaultValue={row[header]}
+                                            // onInput={handeleInput}
+                                            className="full-cell-textarea"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    // e.target.scrollTop = 0;
+                                                    e.target.blur();
+                                                }
+                                            }}
+                                            onBlur={(e) => {
+                                                        // e.target.style.scrollBehavior = 'smooth';
+                                                        e.target.scrollTop = 0;
+                                            }}
+                                            // defaultValue={row[header]}
+                                            // onBlur={(e) =>
+                                            //     handleChange(
+                                            //         row.B,
+                                            //         header,
+                                            //         e.target.value
+                                            //     )
+                                            // }
+                                            // style={{ width: '10em' }}
+                                        />
                                     ) : (
                                         row[header]
                                     )}

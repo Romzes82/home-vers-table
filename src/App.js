@@ -69,7 +69,7 @@ export default function App() {
             alert(`Удалены счета : ${removedInvoices}`);
             console.log(`Удалены счета : ${removedInvoices}`);
         }
-        
+
     //   setTableData1((prev) => {
     //     // console.log(prev[0].F);
     //     // console.log(newData[0].F);
@@ -83,16 +83,53 @@ export default function App() {
     //         return merged;
     //   });
         
-        setTableData((prev) => 
-            newData.map(newRow => { 
-                const exisningRow = prev.find(r => r.B === newRow.B);
-                return exisningRow
-                    ? {
-                          ...newRow,
-                          F: exisningRow.F,
-                          V: exisningRow.V,
-                      }
-                    : newRow;
+        // изменение предыдущего состояния таблицы при handleUpload
+        setTableData((prev) =>
+            // допишем к пред. состоянию только новые счета
+            // также надо учесть, что при наличии новых счетов, надо скоприовать единожды комментарий L в Y
+            newData.map(newRow => {
+                //находим соответствующую строку в !предыдущих! данных, т.е. exisningRow - это строка объект пред. 
+                // данных. И так для каждой новой строки newRow
+                const exisningRow = prev.find((r) => r.B === newRow.B);
+                // console.log(exisningRow);
+                // если строка соответсвует в предыдущих данных
+                if (exisningRow) {
+                    if (
+                        // это проверка на пустое/пробел значение в комментарии пред. знач
+                        exisningRow.Y.length !== '' ||
+                        exisningRow.Y.length !== ' '
+                    ) {
+                        // если пред. откорректированный комментарий уже имеет строку не '' или ' ', то предыдущее значение Y сохраним 
+                        // в новом значении Y. Иначе в новом Y сохраняем предыдущий L
+                        // console.log(exisningRow.Y);
+                        return {
+                            ...newRow, // берем все поля из новой строки-объекта
+                            F: exisningRow.F, //сохраняем F из предыдущей версии
+                            V: exisningRow.V,
+                            Y: exisningRow.Y,
+                        };
+                    } else {
+                        return {
+                            ...newRow, // берем все поля из новой строки-объекта
+                            F: exisningRow.F, //сохраняем F из предыдущей версии
+                            V: exisningRow.V,
+                            Y: exisningRow.L,
+                        };
+                    }
+                }
+                // если это полностью новая строка
+                return {
+                    ...newRow,
+                    Y: newRow.L || '',
+                };
+                // return exisningRow
+                //     ? {
+                //           ...newRow,
+                //           F: exisningRow.F,
+                //           V: exisningRow.V,
+                //           //   Y: exisningRow.L,
+                //       }
+                //     : newRow;
             })
         );  
 

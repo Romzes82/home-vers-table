@@ -1,4 +1,4 @@
-.displayData {
+/* .displayData {
   margin-top: 2em;
   display: flex;
   justify-content: center;
@@ -46,4 +46,49 @@ tr {
 .noFileContainer {
   text-align: center;
   margin-top: 2em;
+} */
+
+
+/* Стили input */
+.full-cell-input {
+    /* width: 100%; */
+    width: 10em;
+    height: 100%;
+    box-sizing: border-box; /* Учитываем padding и border в размерах */
+    padding: 8px;
+    border: none; /* Убираем границу input */
+    outline: none; /* Убираем контур при фокусе */
+    background: transparent; /* Прозрачный фон */
+    display: table-cell;
+    vertical-align: inherit;
+    unicode-bidi: isolate;
+    overflow: hidden; /* Обрезаем всё за пределами блока */
+    text-overflow: ellipsis; /* Добавляем многоточие */
+    background: #f4eddf; /* Цвет фона */
+}
+
+ .full-cell-textarea {
+    background: #f4eddf; /* Цвет фона */
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 8px;
+    /* border: none; */
+    resize: none; /* Отключаем изменение размера */
+    font-family: inherit;
+    font-size: inherit;
+    white-space: pre-wrap; /* Сохраняем переносы строк */
+    overflow-wrap: break-word; /* Перенос длинных слов */
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden; /* Обрезаем всё за пределами блока */
+    text-overflow: ellipsis; /* Добавляем многоточие */
+    /* возвращать в начало строки при onBlur */
+}
+
+/* Для динамического изменения высоты */
+.auto-height {
+    height: auto;
+    min-height: 60px;
 }
