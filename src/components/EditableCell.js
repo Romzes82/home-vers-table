@@ -1,7 +1,7 @@
 export const EditableCell = ({ value, onChange }) => {
-    const handleChange = (e) => {
-        onChange(e.target.value);
-    };
+    // const handleChange = (e) => {
+    //     onChange(e.target.value);
+    // };
 
     return (
         <td>

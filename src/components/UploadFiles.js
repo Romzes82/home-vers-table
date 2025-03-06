@@ -8,7 +8,7 @@ import {
     fullingDate,
 } from '../utils/helpersFunctions';
 
-import { TABLE_HEAD } from '../utils/constants';
+import { QUANTITY_PALLET, TABLE_HEAD } from '../utils/constants';
 import './UploadFiles.css';
 
 const UploadFiles = ({ onUpload }) => {
@@ -62,16 +62,14 @@ const UploadFiles = ({ onUpload }) => {
 
                 // дополнительные столбцы;
                 processed['V'] = [];
-                processed['W'] = '';
-                // {
-                //     value: '', //текущее значение
-                //     options: ['', 'Т', 'Д']
-                // };
-                processed['X'] = 0;
-                // {
-                //     value: 0, //текущее значение
-                //     options: [0, 1, 2, 3, 4, 5],
-                // };
+                processed['W'] = {
+                    value: '', //текущее значение
+                    options: ['', 'Т', 'Д'],
+                };
+                processed['X'] = {
+                    value: '', //текущее значение
+                    options: QUANTITY_PALLET,
+                };
                 processed['Y'] = '';
             });
 
@@ -94,49 +92,51 @@ const UploadFiles = ({ onUpload }) => {
                     const text = decoder.decode(new Uint8Array(buffer));
                     // const text = e.target.result;
                     // console.log(text);
-                                    const lines = text
-                                        .split('\n')
-                                        .filter((line) => line.trim() !== '')
-                                        .map((line, index) => ({
-                                            A: index + 1,
-                                            B: index + 1,
-                                            C: '',
-                                            D: '',
-                                            E: '',
-                                            F: 'Zabiraem',
-                                            G: 0,
-                                            H: 0,
-                                            I: 0,
-                                            J: 0,
-                                            K: 0,
-                                            L: line.trim(),
-                                            M: '',
-                                            N: '',
-                                            O: '',
-                                            P: '',
-                                            Q: '',
-                                            R: '',
-                                            S: 999111999,
-                                            T: '',
-                                            U: '',
-                                            V: [],
-                                            W: '',
-                                            X: 0,
-                                            Y: '',
-                                            // W: {
-                                            //     value: '', //текущее значение
-                                            //     options: ['', 'Т', 'Д'],
-                                            // },
-                                            // X: {
-                                            //     value: 0, //текущее значение
-                                            //     options: [0, 1, 2, 3, 4, 5],
-                                            // },
-                                            // Y: '',
-                                        }));
-                                    resolve(lines);
-                    
-                } catch (error) { 
-                    console.log('Ошибка декодирования текстового файла:', error);
+                    const lines = text
+                        .split('\n')
+                        .filter((line) => line.trim() !== '')
+                        .map((line, index) => ({
+                            A: index + 1,
+                            B: index + 1,
+                            C: '',
+                            D: '',
+                            E: '',
+                            F: 'Zabiraem',
+                            G: 0,
+                            H: 0,
+                            I: 0,
+                            J: 0,
+                            K: 0,
+                            L: line.trim(),
+                            M: '',
+                            N: '',
+                            O: '',
+                            P: '',
+                            Q: '',
+                            R: '',
+                            S: 999111999,
+                            T: '',
+                            U: '',
+                            V: [],
+                            // W: '',
+                            // X: 0,
+                            Y: '',
+                            W: {
+                                value: '', //текущее значение
+                                options: ['', 'Т', 'Д'],
+                            },
+                            X: {
+                                value: '', //текущее значение
+                                options: QUANTITY_PALLET,
+                            },
+                            // Y: '',
+                        }));
+                    resolve(lines);
+                } catch (error) {
+                    console.log(
+                        'Ошибка декодирования текстового файла:',
+                        error
+                    );
                     resolve([]);
                 }
             };

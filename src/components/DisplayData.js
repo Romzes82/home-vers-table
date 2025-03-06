@@ -2,7 +2,7 @@ import './DisplayData.css';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import StatsPanel from './StatsPanel';
 import { COLUMN_HIDDEN, COLUMN_ORDER } from '../utils/constants';
-import { EditableCell } from './EditableCell';
+// import { EditableCell } from './EditableCell';
 
 export default function DisplayData({ data, onCellChange, fileHistory }) {
     const [hiddenColumns, setHiddenColumns] = useState(COLUMN_HIDDEN);
@@ -13,14 +13,14 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
     const cellsRef = useRef([]);
     const textareaRef = useRef(null);
 
-    //для nextarea столбец Y
-    const handeleInput = () => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-            textareaRef.current.style.height =
-                textareaRef.current.style.scrollWidth + 'px';
-        }
-    };
+    // //для nextarea столбец Y
+    // const handeleInput = () => {
+    //     if (textareaRef.current) {
+    //         textareaRef.current.style.height = 'auto';
+    //         textareaRef.current.style.height =
+    //             textareaRef.current.style.scrollWidth + 'px';
+    //     }
+    // };
 
     // Проверка обрезания текста и обновление title
     useEffect(() => {
@@ -45,7 +45,7 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            maxWidth: '200px', // Можно настроить под ваши нужды
+            maxWidth: '250px', // Можно настроить под ваши нужды
         },
     };
 
@@ -173,14 +173,30 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
     // }
 
     const getCellStyle = (header, rowIndex, value) => {
-
-        const styles = { padding: '8px' };
-
-        if (header === 'Y') { 
+        const styles = { padding: '2px' };
+        // const styles = {};
+        if (header === 'Y') {
             styles.position = 'relative';
             styles.minWidth = '200px';
             return styles;
         }
+
+        // стили для "плательщик"
+        if (header === 'W' || header === 'X') {
+            // const choisedValue = data[rowIndex]?.[header]?.value;
+            // console.log('choisedValue', choisedValue);
+            // if (choisedValue === 1) {
+            //     console.log('yes')
+            //     styles.backgroundColor = 'gray';
+            //     // return styles;
+            // }
+            // (choisedValue === '') ? styles.backgroundColor = "yellow" : styles;
+            // styles.position = 'relative';
+            // styles.minWidth = '200px';
+            // styles.backgroundColor = 'gray';
+            return styles;
+        }
+
         // const styles = { padding: '8px' };
         // const styles = { padding: '0', position: 'relative' };
 
@@ -225,6 +241,32 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
     const handleChange = (rowIndex, column, value) => {
         const newData = data.map((row) =>
             row.B === rowIndex ? { ...row, [column]: value } : row
+        );
+        // console.log(value);
+        // const newData = data.map((row, index) =>
+        //   index === rowIndex ? { ...row, [column]: value } : row
+        // );
+        // возможно здесть надо определять массив в V, исходя из значения F и записывать все это в newData
+        onCellChange(newData);
+    };
+
+    const handleChange_W_or_X = (rowIndex, column, e) => {
+        // console.log('in handleChange_W'); 
+        // console.log(e.target); 
+        // console.log(e.target.value); 
+        // console.log(e.target.options); 
+        
+        const newData = data.map((row) =>
+            row.B === rowIndex
+                ? {
+                      ...row,
+                    [column]: {
+                          ...row[column], // сохраняем все существующие свойства
+                          value: e.target.value // обовляем только value
+                        //   options: ['','Т','Д'],
+                      },
+                  }
+                : row
         );
         // console.log(value);
         // const newData = data.map((row, index) =>
@@ -435,16 +477,12 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                                                 )}
                                             </datalist>
                                         </>
-                                    ) : header === 'Y' ? (
-                                        // <EditableCell
-                                        //     value={}
-                                        //     onChange={}
-                                        // />
+                                        )
+                                            : header === 'Y' ? (
                                         <textarea
                                             ref={textareaRef}
                                             type="text"
                                             defaultValue={row[header]}
-                                            // onInput={handeleInput}
                                             className="full-cell-textarea"
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') {
@@ -454,19 +492,97 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                                                 }
                                             }}
                                             onBlur={(e) => {
-                                                        // e.target.style.scrollBehavior = 'smooth';
-                                                        e.target.scrollTop = 0;
+                                                e.target.scrollTop = 0;
+                                                handleChange(
+                                                    row.B,
+                                                    header,
+                                                    e.target.value
+                                                );
                                             }}
-                                            // defaultValue={row[header]}
+                                        />
+                                            )
+                                                : header === 'W' ? (
+                                        <select
+                                            // value={row[header]?.value}
+                                            className={
+                                                row[header].value !== ''
+                                                    ? 'red'
+                                                    : ''
+                                            }
+                                            defaultValue={row[header].value}
+                                            onBlur={(e) => {
+                                                // console.log(e.target.value);
+                                                handleChange_W_or_X(
+                                                    row.B,
+                                                    header,
+                                                    e
+                                                );
+                                            }}
+                                            // style={{ width: '10em' }}
+                                            // list="addressList"
+                                            // list={row['B'] + '_V'}
+                                            // value={row[header][0]}
+                                            // defaultValue={row[header][0]}
                                             // onBlur={(e) =>
-                                            //     handleChange(
+                                            //     handleChange_V(
                                             //         row.B,
                                             //         header,
-                                            //         e.target.value
+                                            //         e,
+                                            //         row[header]
                                             //     )
                                             // }
-                                            // style={{ width: '10em' }}
-                                        />
+                                        >
+                                            {row[header].options.map(
+                                                (option) => (
+                                                    <option
+                                                        key={option}
+                                                        value={option}
+                                                    >
+                                                        {option}
+                                                    </option>
+                                                )
+                                            )}
+                                        </select>
+                                    ) : header === 'X' ? (
+                                        <select
+                                            className={
+                                                row[header].value !== ''
+                                                    ? 'red'
+                                                    : ''
+                                            }
+                                            defaultValue={row[header].value}
+                                            onBlur={(e) =>
+                                                // console.log(e.target.value)
+                                                handleChange_W_or_X(
+                                                    row.B,
+                                                    header,
+                                                    e
+                                                )
+                                            }
+                                            // list="addressList"
+                                            // list={row['B'] + '_V'}
+                                            // value={row[header][0]}
+                                            // defaultValue={row[header][0]}
+                                            // onBlur={(e) =>
+                                            //     handleChange_V(
+                                            //         row.B,
+                                            //         header,
+                                            //         e,
+                                            //         row[header]
+                                            //     )
+                                            // }
+                                        >
+                                            {row[header].options.map(
+                                                (option) => (
+                                                    <option
+                                                        key={option}
+                                                        value={option}
+                                                    >
+                                                        {option}
+                                                    </option>
+                                                )
+                                            )}
+                                        </select>
                                     ) : (
                                         row[header]
                                     )}
