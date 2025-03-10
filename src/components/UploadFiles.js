@@ -71,6 +71,10 @@ const UploadFiles = ({ onUpload }) => {
                     options: QUANTITY_PALLET,
                 };
                 processed['Y'] = '';
+                processed['Z'] = {
+                    crossedCellClient: false,
+                    crossedCellAddress: false,
+                };
             });
 
             return processed;
@@ -128,6 +132,10 @@ const UploadFiles = ({ onUpload }) => {
                             X: {
                                 value: '', //текущее значение
                                 options: QUANTITY_PALLET,
+                            },
+                            Z: {
+                                crossedCellClient: false,
+                                crossedCellAddress: false,
                             },
                             // Y: '',
                         }));
@@ -286,7 +294,7 @@ const UploadFiles = ({ onUpload }) => {
 
     return (
         <div className="uploadFile">
-            <label>Upload your Excel files:</label>
+            {/* <label>Обновить три файла:</label> */}
 
             <div>
                 <label
@@ -307,7 +315,7 @@ const UploadFiles = ({ onUpload }) => {
                         <div className="drop-message">
                             {isLoading
                                 ? 'Processing...'
-                                : 'Drag & drop files here or click to select'}
+                                : 'Загрузить/Обновить файлы'}
                         </div>
                     </div>
                 </label>

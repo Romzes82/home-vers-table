@@ -74,7 +74,9 @@ const StatsPanel = ({ data }) => {
                 >
                     <span>Монолит/АСД:</span>
                     {/* <div>Вес: {customRound(sums.mo.J, 1)} кг</div> */}
-                    <div>Объем: {customRound(sums.mo.K, 3)} м.куб.</div>
+                    <div>
+                        Объем: {customRound(sums.mo.K, 3)} м.куб.
+                    </div>
                 </div>
             </div>
 

@@ -4,21 +4,21 @@ import UploadFiles from './components/UploadFiles';
 import DisplayData from './components/DisplayData';
 import './App.css';
 
-const getLocalData = async () => {
-    try {
-        const value1 = await localForage.getItem('tableData');
-        const value2 = await localForage.getItem('fileVersionData');
-        console.log('tableData');
-        console.log(value1);
-        console.log('fileVersionData');
-        console.log(value2);
-        // return value;
-        // await localforage.setItem('items', data);
-        // console.log('Данные сохранены');
-    } catch (err) {
-        console.error('Ошибка считывания localForage:', err);
-    }
-};
+// const getLocalData = async () => {
+//     try {
+//         const value1 = await localForage.getItem('tableData');
+//         const value2 = await localForage.getItem('fileVersionData');
+//         console.log('tableData');
+//         console.log(value1);
+//         console.log('fileVersionData');
+//         console.log(value2);
+//         // return value;
+//         // await localforage.setItem('items', data);
+//         // console.log('Данные сохранены');
+//     } catch (err) {
+//         console.error('Ошибка считывания localForage:', err);
+//     }
+// };
 
 export default function App() {
     const [tableData, setTableData] = useState([]);
@@ -106,14 +106,20 @@ export default function App() {
                             ...newRow, // берем все поля из новой строки-объекта
                             F: exisningRow.F, //сохраняем F из предыдущей версии
                             V: exisningRow.V,
+                            W: exisningRow.W,
+                            X: exisningRow.X,
                             Y: exisningRow.Y,
+                            Z: exisningRow.Z,
                         };
                     } else {
                         return {
                             ...newRow, // берем все поля из новой строки-объекта
                             F: exisningRow.F, //сохраняем F из предыдущей версии
                             V: exisningRow.V,
+                            W: exisningRow.W,
+                            X: exisningRow.X,
                             Y: exisningRow.L,
+                            Z: exisningRow.Z,
                         };
                     }
                 }
@@ -138,7 +144,7 @@ export default function App() {
     return (
         <div>
             <UploadFiles onUpload={handleUpload} />
-            <button onClick={() => getLocalData()}>GetLocal</button>
+            {/* <button onClick={() => getLocalData()}>GetLocal</button> */}
             <DisplayData data={tableData} onCellChange={setTableData} fileHistory={fileHistory}/>
         </div>
     );

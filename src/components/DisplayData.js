@@ -63,16 +63,19 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
     };
 
     // Вычисление сумм
-    const { sumJ, sumK } = useMemo(() => {
+    const { sumJ, sumK, sumX } = useMemo(() => {
         let j = 0,
-            k = 0;
+            k = 0,
+            x = 0;
         data.forEach((row) => {
             if (selectedIds.has(row.B)) {
+                // console.log(Number(row.X.value));
                 j += Number(row.J) || 0;
                 k += Number(row.K) || 0;
+                x += Number(row.X.value) || 0;
             }
         });
-        return { sumJ: j.toFixed(2), sumK: k.toFixed(2) };
+        return { sumJ: j.toFixed(2), sumK: k.toFixed(2), sumX: x };
     }, [data, selectedIds]);
 
     // Сброс выделения
@@ -183,17 +186,10 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
 
         // стили для "плательщик"
         if (header === 'W' || header === 'X') {
-            // const choisedValue = data[rowIndex]?.[header]?.value;
-            // console.log('choisedValue', choisedValue);
-            // if (choisedValue === 1) {
-            //     console.log('yes')
-            //     styles.backgroundColor = 'gray';
-            //     // return styles;
+            // console.log(rowIndex.X.value);
+            // if (rowIndex[header].value !== '') {
+            //     styles.backgroundColor = '#f4eddf';
             // }
-            // (choisedValue === '') ? styles.backgroundColor = "yellow" : styles;
-            // styles.position = 'relative';
-            // styles.minWidth = '200px';
-            // styles.backgroundColor = 'gray';
             return styles;
         }
 
@@ -251,19 +247,19 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
     };
 
     const handleChange_W_or_X = (rowIndex, column, e) => {
-        // console.log('in handleChange_W'); 
-        // console.log(e.target); 
-        // console.log(e.target.value); 
-        // console.log(e.target.options); 
-        
+        // console.log('in handleChange_W');
+        // console.log(e.target);
+        // console.log(e.target.value);
+        // console.log(e.target.options);
+
         const newData = data.map((row) =>
             row.B === rowIndex
                 ? {
                       ...row,
-                    [column]: {
+                      [column]: {
                           ...row[column], // сохраняем все существующие свойства
-                          value: e.target.value // обовляем только value
-                        //   options: ['','Т','Д'],
+                          value: e.target.value, // обовляем только value
+                          //   options: ['','Т','Д'],
                       },
                   }
                 : row
@@ -351,13 +347,50 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                     }}
                 >
                     <div>
-                        <strong>Выделено строк:</strong> {selectedIds.size}
+                        <strong>Выделено строк: </strong>
+                        <span
+                            style={{
+                                padding: '2px',
+                            }}
+                        >
+                            {selectedIds.size}
+                        </span>
                     </div>
                     <div>
-                        <strong>Сумма J:</strong> {sumJ}
+                        <strong>Вес: </strong>{' '}
+                        <span
+                            style={{
+                                backgroundColor: 'rgb(224, 224, 224)',
+                                borderRadius: '6px',
+                                padding: '2px',
+                            }}
+                        >
+                            &nbsp; {sumJ} &nbsp;
+                        </span>
                     </div>
                     <div>
-                        <strong>Сумма K:</strong> {sumK}
+                        <strong>Объем: </strong>
+                        <span
+                            style={{
+                                backgroundColor: 'rgb(224, 224, 224)',
+                                borderRadius: '6px',
+                                padding: '2px',
+                            }}
+                        >
+                            &nbsp; {sumK} &nbsp;
+                        </span>
+                    </div>
+                    <div>
+                        <strong>Паллет: </strong>
+                        <span
+                            style={{
+                                backgroundColor: 'rgb(224, 224, 224)',
+                                borderRadius: '6px',
+                                padding: '2px',
+                            }}
+                        >
+                            &nbsp; {sumX} &nbsp;
+                        </span>
                     </div>
 
                     <button
@@ -381,7 +414,13 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                 ))}
             </datalist> */}
             {/* <table style={{ with: '100%', borderCollapse: 'separate' }}> */}
-            <table style={{ with: '100%', borderCollapse: 'collapse' }}>
+            <table
+                style={{
+                    with: '100%',
+                    borderCollapse: 'collapse',
+                    margin: '4px',
+                }}
+            >
                 <thead>
                     <tr>
                         {filterHeaders.map((header) => (
@@ -400,7 +439,7 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                             style={{
                                 // backgroundColor: row.V[0]  ? 'lightgray' : 'none',
                                 borderTop: row.V[0]
-                                    ? '7px solid darkgrey'
+                                    ? '7px solid rgb(211 177 230)'
                                     : 'none',
                                 // border: row.V[0] ? '2px solid blue' : 'none',
                                 position: 'relative',
@@ -408,7 +447,7 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
 
                                 backgroundColor: selectedIds.has(row.B)
                                     ? '#e0e0e0'
-                                    : 'transparent',
+                                    : 'rgb(248, 249, 250)',
 
                                 transition: 'background-color 0.2s',
                                 ...(isCompact ? compactStyles.td : {}),
@@ -441,6 +480,13 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                                     {header === 'F' ? (
                                         <input
                                             defaultValue={row[header]}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    // e.target.scrollTop = 0;
+                                                    e.target.blur();
+                                                }
+                                            }}
                                             onBlur={(e) =>
                                                 handleChange(
                                                     row.B,
@@ -457,6 +503,13 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                                                 list={row['B'] + '_V'}
                                                 // value={row[header][0]}
                                                 defaultValue={row[header][0]}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        // e.target.scrollTop = 0;
+                                                        e.target.blur();
+                                                    }
+                                                }}
                                                 onBlur={(e) =>
                                                     handleChange_V(
                                                         row.B,
@@ -477,8 +530,7 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                                                 )}
                                             </datalist>
                                         </>
-                                        )
-                                            : header === 'Y' ? (
+                                    ) : header === 'Y' ? (
                                         <textarea
                                             ref={textareaRef}
                                             type="text"
@@ -500,13 +552,12 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                                                 );
                                             }}
                                         />
-                                            )
-                                                : header === 'W' ? (
+                                    ) : header === 'W' ? (
                                         <select
                                             // value={row[header]?.value}
                                             className={
                                                 row[header].value !== ''
-                                                    ? 'red'
+                                                    ? 'beige-with-value'
                                                     : ''
                                             }
                                             defaultValue={row[header].value}
@@ -547,7 +598,7 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
                                         <select
                                             className={
                                                 row[header].value !== ''
-                                                    ? 'red'
+                                                    ? 'beige-with-value'
                                                     : ''
                                             }
                                             defaultValue={row[header].value}

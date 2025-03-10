@@ -1,7 +1,13 @@
 .uploadFile {
-  padding: 20px;
-  border: 2px dashed #ccc;
+  /* padding: 10px; */
+  border: 1px dashed #ccc;
   text-align: center;
+  background-color: #ccc;
+  position: sticky;
+  top: 0;
+  width: 100%; /* Шапка займёт всю ширину окна браузера */
+  z-index: 10; /* Высокое значение, чтобы шапка была всегда на первом плане */
+
 }
 
 .drop-zone {
@@ -10,7 +16,7 @@
 }
 
 .drop-message {
-  margin-top: 10px;
+  margin-top: 5px;
   color: #666;
 }
 

@@ -65,6 +65,7 @@ export const COLUMN_HIDDEN = [
     'T',
     'U',
     'D',
+    'Z',
 ];
 
 // массив кол-во паллет
