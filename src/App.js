@@ -4,91 +4,77 @@ import UploadFiles from './components/UploadFiles';
 import DisplayData from './components/DisplayData';
 import './App.css';
 
-// const getLocalData = async () => {
-//     try {
-//         const value1 = await localForage.getItem('tableData');
-//         const value2 = await localForage.getItem('fileVersionData');
-//         console.log('tableData');
-//         console.log(value1);
-//         console.log('fileVersionData');
-//         console.log(value2);
-//         // return value;
-//         // await localforage.setItem('items', data);
-//         // console.log('Данные сохранены');
-//     } catch (err) {
-//         console.error('Ошибка считывания localForage:', err);
-//     }
-// };
-
 export default function App() {
     const [tableData, setTableData] = useState([]);
-    const [fileHistory, setFileHistory] = useState({current: [], previous: []}); //для сверки новых данных из xls со старыми
+    const [fileHistory, setFileHistory] = useState({
+        current: [],
+        previous: [],
+    });
 
-    // Загрузка данных из хранилища при монтировании
+    const [tableOrder, setTableOrder] = useState([]);
+
+    // Загрузка данных при монтировании
     useEffect(() => {
         const loadData = async () => {
-            const [savedData, savedHitory] = await Promise.all([
+            const [savedData, savedHistory, savedOrder] = await Promise.all([
                 localForage.getItem('tableData'),
-                localForage.getItem('fileHistory')
+                localForage.getItem('fileHistory'),
+                localForage.getItem('tableOrder'),
             ]);
-                // if (savedData) setTableData(savedData);
-                // if (savedFileData) setFileVersionData(savedFileData);
-                setTableData(savedData || []);
-                setFileHistory(savedHitory || {current: [], previous: []});
+
+            setTableData(savedData || []);
+            setFileHistory(savedHistory || { current: [], previous: [] });
+            setTableOrder(savedOrder || []);
         };
+
         loadData();
     }, []);
 
-    // Сохранение данных в localForage при изменении
+    // Сохранение данных
     useEffect(() => {
-        localForage.setItem('tableData', tableData);
-        localForage.setItem('fileHistory', fileHistory);
-    }, [tableData, fileHistory]);
-    // }, [tableData]);
+        const saveData = async () => {
+            await Promise.all([
+                localForage.setItem('tableData', tableData),
+                localForage.setItem('fileHistory', fileHistory),
+                localForage.setItem('tableOrder', tableOrder),
+            ]);
+        };
 
+        saveData();
+    }, [tableData, fileHistory, tableOrder]);
 
-    // Обработка новых данных из файла
+    // Обработка загрузки файла
+
     const handleUpload = (newData) => {
-       // сохраняем предыдущую версию данных перед обновлением
-      const previousData = fileHistory.current;
+        // ... существующая логика handleUpload без изменений ...
+        // сохраняем предыдущую версию данных перед обновлением
+        const previousData = fileHistory.current;
 
-      // обновляем историю файлов  
-      setFileHistory(prev => ({
-        current: newData,
-        previous: prev.current // сохраняем предыдущую версию
-      }));
-        
+        // обновляем историю файлов
+        setFileHistory((prev) => ({
+            current: newData,
+            previous: prev.current, // сохраняем предыдущую версию
+        }));
+
         // находим удаленные строки
-        const removedRows = previousData.filter(prevRow => 
-          !newData.some(newRow => newRow.B === prevRow.B)
-        )
+        const removedRows = previousData.filter(
+            (prevRow) => !newData.some((newRow) => newRow.B === prevRow.B)
+        );
 
         // alert для удаленных строк
         if (removedRows.length > 0) {
-            const removedInvoices = removedRows.map(row => row.B).join(', ');
+            const removedInvoices = removedRows.map((row) => row.B).join(', ');
             alert(`Удалены счета : ${removedInvoices}`);
             console.log(`Удалены счета : ${removedInvoices}`);
         }
 
-    //   setTableData1((prev) => {
-    //     // console.log(prev[0].F);
-    //     // console.log(newData[0].F);
-    //         // Объединяем новые данные с существующими, сохраняя изменения столбца F
-    //       const merged = newData.map((row, index) => (
-    //         {
-    //             ...row,
-    //             F: prev[index]?.F || row.F,
-    //             V: prev[index]?.V || row.V,
-    //         }));
-    //         return merged;
-    //   });
-        
+
         // изменение предыдущего состояния таблицы при handleUpload
         setTableData((prev) =>
             // допишем к пред. состоянию только новые счета
             // также надо учесть, что при наличии новых счетов, надо скоприовать единожды комментарий L в Y
-            newData.map(newRow => {
-                //находим соответствующую строку в !предыдущих! данных, т.е. exisningRow - это строка объект пред. 
+            newData.map((newRow) => {
+                //находим соответствующую строку в !предыдущих! данных, т.е. exisningRow - это строка объект пред.
                 // данных. И так для каждой новой строки newRow
                 const exisningRow = prev.find((r) => r.B === newRow.B);
                 // console.log(exisningRow);
@@ -99,7 +85,7 @@ export default function App() {
                         exisningRow.Y.length !== '' ||
                         exisningRow.Y.length !== ' '
                     ) {
-                        // если пред. откорректированный комментарий уже имеет строку не '' или ' ', то предыдущее значение Y сохраним 
+                        // если пред. откорректированный комментарий уже имеет строку не '' или ' ', то предыдущее значение Y сохраним
                         // в новом значении Y. Иначе в новом Y сохраняем предыдущий L
                         // console.log(exisningRow.Y);
                         return {
@@ -128,25 +114,41 @@ export default function App() {
                     ...newRow,
                     Y: newRow.L || '',
                 };
-                // return exisningRow
-                //     ? {
-                //           ...newRow,
-                //           F: exisningRow.F,
-                //           V: exisningRow.V,
-                //           //   Y: exisningRow.L,
-                //       }
-                //     : newRow;
             })
-        );  
+        );
 
+        // Обновление ПОРЯДКА при добавлении новых данных
+
+        setTableOrder((prevOrder) => {
+            const newIds = newData.map((row) => row.B);
+            const filteredOrder = prevOrder.filter((id) =>
+                newData.some((row) => row.B === id)
+            );
+
+            return [
+                ...filteredOrder,
+                ...newIds.filter((id) => !prevOrder.includes(id)),
+            ];
+        });
+    };
+
+    // Обработчик изменения порядка
+
+    const handleOrderChange = (newOrder) => {
+        setTableOrder(newOrder);
     };
 
     return (
         <div>
+
+            <DisplayData
+                data={tableData}
+                order={tableOrder}
+                onOrderChange={handleOrderChange}
+                onCellChange={setTableData}
+                fileHistory={fileHistory}
+            />
             <UploadFiles onUpload={handleUpload} />
-            {/* <button onClick={() => getLocalData()}>GetLocal</button> */}
-            <DisplayData data={tableData} onCellChange={setTableData} fileHistory={fileHistory}/>
         </div>
     );
 }
-

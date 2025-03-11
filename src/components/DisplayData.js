@@ -3,56 +3,335 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import StatsPanel from './StatsPanel';
 import { COLUMN_HIDDEN, COLUMN_ORDER } from '../utils/constants';
 // import { EditableCell } from './EditableCell';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+// import localForage from 'localforage';
 
-export default function DisplayData({ data, onCellChange, fileHistory }) {
+// Компонент для сортируемой строки
+
+const SortableRow = ({
+    row,
+    handleRowClick,
+    filterHeaders,
+    isCompact,
+    getCellStyle,
+    selectedIds,
+    cellsRef,
+    handleChange,
+    handleChange_V,
+    handleChange_W_or_X,
+}) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: row.B });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 999 : 'auto',
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <tr
+            ref={setNodeRef}
+            style={{
+                ...style,
+                borderTop: row.V[0] ? '7px solid rgb(211 177 230)' : 'none',
+                backgroundColor: selectedIds.has(row.B)
+                    ? '#e0e0e0'
+                    : 'rgb(248, 249, 250)',
+                position: 'relative',
+                cursor: isDragging ? 'grabbing' : 'grab',
+                ...(isCompact && { height: '30px' }),
+            }}
+            // {...attributes}
+            // {...listeners}
+            onClick={(e) => handleRowClick(e, row)}
+        >
+            {filterHeaders.map((header, cellIndex) => {
+                const isDraggableCell = header === 'A';
+                return (
+                    <td
+                        key={header}
+                        {...(isDraggableCell ? attributes : {})}
+                        {...(isDraggableCell ? listeners : {})}
+                        ref={(el) => (cellsRef.current[row.B + cellIndex] = el)}
+                        // ref={(el) => (cellsRef.current[row.B + cellIndex] = el)}
+                        style={{
+                            cursor: isDraggableCell ? 'grab' : 'default',
+                            border: '1px solid #ddd',
+                            ...getCellStyle(header, row),
+                            ...(isCompact && {
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '250px',
+                            }),
+                        }}
+                    >
+                        {renderCellContent(
+                            header,
+                            row,
+                            handleChange,
+                            handleChange_V,
+                            handleChange_W_or_X
+                        )}
+                    </td>
+                );
+            })}
+        </tr>
+    );
+};
+
+// Вспомогательная функция для рендеринга содержимого ячейки
+
+const renderCellContent = (
+    header,
+    row,
+    handleChange,
+    handleChange_V,
+    handleChange_W_or_X
+) => {
+    switch (header) {
+        case 'E':
+            return (
+                <div
+                    style={{
+                        textDecoration: row.Z?.crossedCellClient
+                            ? 'line-through 2px #000'
+                            : 'none',
+                        // cursor: 'pointer',
+                    }}
+                    onClick={(e) => {
+                        if (e.altKey) {
+                            handleChange(row.B, 'Z', {
+                                ...row.Z,
+                                crossedCellClient: !row.Z?.crossedCellClient,
+                            });
+                        }
+                    }}
+                >
+                    {row[header]}
+                </div>
+            );
+
+        case 'Q':
+            return (
+                <div
+                    style={{
+                        textDecoration: row.Z?.crossedCellAddress
+                            ? 'line-through 2px #000'
+                            : 'none',
+                        // cursor: 'pointer',
+                    }}
+                    onClick={(e) => {
+                        if (e.altKey) {
+                            handleChange(row.B, 'Z', {
+                                ...row.Z,
+                                crossedCellAddress: !row.Z?.crossedCellAddress,
+                            });
+                        }
+                    }}
+                >
+                    {row[header]}
+                </div>
+            );
+
+        case 'F':
+            return (
+                <input
+                    defaultValue={row[header]}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            e.target.blur();
+                        }
+                    }}
+                    onBlur={(e) => handleChange(row.B, header, e.target.value)}
+                    style={{ width: '10em' }}
+                />
+            );
+
+        case 'V':
+            return (
+                <>
+                    <input
+                        list={`${row.B}_V`}
+                        defaultValue={row[header][0]}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.target.blur();
+                            }
+                        }}
+                        onBlur={(e) =>
+                            handleChange_V(row.B, header, e, row[header])
+                        }
+                    />
+
+                    <datalist id={`${row.B}_V`}>
+                        {row[header].map((address, index) => (
+                            <option key={index} value={address} />
+                        ))}
+                    </datalist>
+                </>
+            );
+
+        case 'Y':
+            return (
+                <textarea
+                    defaultValue={row[header]}
+                    className="full-cell-textarea"
+                    // onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            e.target.blur();
+                        }
+                    }}
+                    // onBlur={(e) => handleChange(row.B, header, e.target.value)}
+                    onBlur={(e) => {
+                        e.target.scrollTop = 0;
+                        handleChange(row.B, header, e.target.value);
+                    }}
+                />
+            );
+
+        case 'W':
+
+        // eslint-disable-next-line no-fallthrough
+        case 'X':
+            return (
+                <select
+                    className={
+                        row[header].value !== '' ? 'beige-with-value' : ''
+                    }
+                    defaultValue={row[header].value}
+                    onBlur={(e) =>
+                        // console.log(e.target.value)
+                        handleChange_W_or_X(row.B, header, e)
+                    }
+                >
+                    {row[header].options.map((option) => (
+                        <option key={option} value={option}>
+                            {option}
+                        </option>
+                    ))}
+                </select>
+            );
+        case 'Z':
+            return (
+                <>
+                    <span> {(row[header]?.crossedCellClient).toString()} </span>
+                    <span>{(row[header]?.crossedCellAddress).toString()}</span>
+                </>
+            );
+
+        default:
+            // <span data-value={row[header]?.value ?? row[header]}>
+                return row[header]?.value ?? row[header];
+           // </span> */}
+    }
+};
+
+export default function DisplayData({
+    data,
+    order,
+    onOrderChange,
+    onCellChange,
+    fileHistory,
+}) {
     const [hiddenColumns, setHiddenColumns] = useState(COLUMN_HIDDEN);
     const [mask, setMask] = useState(COLUMN_ORDER);
     const [selectedIds, setSelectedIds] = useState(new Set());
-    const [showSumPanel, setShowSumPanel] = useState(false);
-    const [isCompact, setIsCompact] = useState(false);
+    const [showSumPanel, setShowSumPanel] = useState(true);
+    const [isCompact, setIsCompact] = useState(true);
     const cellsRef = useRef([]);
-    const textareaRef = useRef(null);
 
-    // //для nextarea столбец Y
-    // const handeleInput = () => {
-    //     if (textareaRef.current) {
-    //         textareaRef.current.style.height = 'auto';
-    //         textareaRef.current.style.height =
-    //             textareaRef.current.style.scrollWidth + 'px';
-    //     }
-    // };
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    // Обработчик перетаскивания
+
+    const handleDragEnd = async (event) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = order.indexOf(active.id);
+        const newIndex = order.indexOf(over.id);
+        const newOrder = arrayMove(order, oldIndex, newIndex);
+        onOrderChange(newOrder);
+    };
+
+    // Сортированные данные согласно порядку
+
+    const sortedData = useMemo(() => {
+        const orderMap = new Map(order.map((id, index) => [id, index]));
+
+        return [...data].sort((a, b) => orderMap.get(a.B) - orderMap.get(b.B));
+    }, [data, order]);
+
+    // Остальной код компонента остается без изменений
+
+    // ... (все функции, стили и обработчики остаются как были)
 
     // Проверка обрезания текста и обновление title
     useEffect(() => {
-        cellsRef.current.forEach((cell) => {
-            if (cell) {
-                if (cell && isCompact) {
-                    const isTruncated = cell.scrollWidth > cell.clientWidth;
-                    cell.title = isTruncated ? cell.textContent : '';
-                } else {
-                    cell.title = '';
-                }
-            }
-        });
+     cellsRef.current.forEach((cell) => {
+        console.log(cellsRef.current);
+         if (cell) {
+             if (cell && isCompact) {
+                //  console.log(cell);
+                 const isTruncated = cell.scrollWidth > cell.clientWidth;
+                 cell.title = isTruncated ? cell.textContent : '';
+             } else {
+                 cell.title = '';
+             }
+         }
+     });
     }, [isCompact, data]);
 
     // Стили для компактного режима
-    const compactStyles = {
-        tr: {
-            // height: '30px', // Фиксированная высота строки
-        },
-        td: {
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            maxWidth: '250px', // Можно настроить под ваши нужды
-        },
-    };
+    // const compactStyles = {
+    //     tr: {
+    //         // height: '30px', // Фиксированная высота строки
+    //     },
+    //     td: {
+    //         whiteSpace: 'nowrap',
+    //         overflow: 'hidden',
+    //         textOverflow: 'ellipsis',
+    //         maxWidth: '250px', // Можно настроить под ваши нужды
+    //     },
+    // };
 
     // Обработчик клика по строке
     const handleRowClick = (e, row) => {
         if (e.ctrlKey || e.metaKey) {
-            setShowSumPanel(true);
+            // setShowSumPanel(true);
             e.preventDefault();
             setSelectedIds((prev) => {
                 const newSet = new Set(prev);
@@ -81,7 +360,7 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
     // Сброс выделения
     const resetSelection = () => {
         setSelectedIds(new Set());
-        setShowSumPanel(false);
+        // setShowSumPanel(false);
     };
 
     // // фильтрация и упорядочивание столбцов
@@ -108,18 +387,18 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
         return String(a).localeCompare(String(b));
     };
 
-    // Сортировка данных
-    const sortedData = [...data].sort((a, b) => {
-        // 1. Сортировка по столбцу F (возрастание)
-        const compareF = compareValues(a.F, b.F);
-        if (compareF !== 0) return compareF;
-        // 2. Сортировка по столбцу S (возрастание)
-        return compareValues(a.S, b.S);
-        // const compareS = compareValues(a.S, b.S);
-        // if (compareS !== 0) return compareS;
-        // 3. Сортировка по столбцу E (убывание)
-        // return compareValues(b.E, a.E);
-    });
+    // Сортировка данных ЗАМЕНИЛИ
+    // const sortedData = [...data].sort((a, b) => {
+    //     // 1. Сортировка по столбцу F (возрастание)
+    //     const compareF = compareValues(a.F, b.F);
+    //     if (compareF !== 0) return compareF;
+    //     // 2. Сортировка по столбцу S (возрастание)
+    //     return compareValues(a.S, b.S);
+    //     // const compareS = compareValues(a.S, b.S);
+    //     // if (compareS !== 0) return compareS;
+    //     // 3. Сортировка по столбцу E (убывание)
+    //     // return compareValues(b.E, a.E);
+    // });
 
     // Определение изменений между версиями файлов
     const getChangedCells = () => {
@@ -185,7 +464,7 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
         }
 
         // стили для "плательщик"
-        if (header === 'W' || header === 'X') {
+        if (header === 'W' || header === 'X' || header === 'Z') {
             // console.log(rowIndex.X.value);
             // if (rowIndex[header].value !== '') {
             //     styles.backgroundColor = '#f4eddf';
@@ -193,47 +472,14 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
             return styles;
         }
 
-        // const styles = { padding: '8px' };
-        // const styles = { padding: '0', position: 'relative' };
-
-        // Стилизация для столбца A исходя из зачения value в ключе A
-        // if (header === "A") {
-        //   const lowerValue = data[rowIndex]?.[header]?.toLowerCase();
-        //   const lowerValue = value?.toLowerCase?.() || "";
-        //   switch (lowerValue) {
-        //     case "green":
-        //       styles.backgroundColor = "#90EE90";
-        //       break;
-        //     case "red":
-        //       styles.backgroundColor = "#FFB6C1";
-        //       break;
-        //     case "blue":
-        //       styles.backgroundColor = "#87CEEB";
-        //       break;
-        //     default:
-        //       break;
-        //   }
-        // }
-        // Подсветка изменений из файла
-        // if(isChangedFromFiled(rowIndex, header)) {
         if (changedCells.has(`${rowIndex.B}-${header}`)) {
             // return { ...style, backgroundColor: 'yellow' };
             styles.backgroundColor = 'yellow';
         }
-        // if (fileVersionData[rowIndex]?.[header] !== data[rowIndex]?.[header]) {
-        //   styles.backgroundColor = "yellow";
-        // }
 
         return styles;
     };
 
-    // const handleChange = (rowIndex, value) => {
-    //     const newData = data.map((row, index) =>
-    //         index === rowIndex ? { ...row, F: value } : row
-    //     );
-
-    //     onCellChange(newData);
-    // };
     const handleChange = (rowIndex, column, value) => {
         const newData = data.map((row) =>
             row.B === rowIndex ? { ...row, [column]: value } : row
@@ -247,11 +493,6 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
     };
 
     const handleChange_W_or_X = (rowIndex, column, e) => {
-        // console.log('in handleChange_W');
-        // console.log(e.target);
-        // console.log(e.target.value);
-        // console.log(e.target.options);
-
         const newData = data.map((row) =>
             row.B === rowIndex
                 ? {
@@ -312,337 +553,383 @@ export default function DisplayData({ data, onCellChange, fileHistory }) {
         return indexA - indexB;
     });
 
-    // const headers = Object.keys(data[0]);
-    // const headers = ["A", "B", "E", "G", "J", "K", "Q", "F", "V", "L", "M"];
-    // const addresses = ['адрес_1','адрес_2']
-
     return (
         <div className="displayData">
-            <button
-                onClick={toggleColumns}
-                style={{ margin: '10px 0', padding: '5px 15px' }}
+            <div
+                style={
+                    {
+                        position: 'sticky',
+                        top: '0px',
+                        width: '100%',
+                        zIndex: '10',
+                        backgroundColor: "white",
+                    }
+                }
             >
-                {hiddenColumns.length
-                    ? 'Показать все стоблцы'
-                    : 'Скрыть неиспользуемые столбцы'}
-            </button>
-            <button
-                onClick={() => setIsCompact(!isCompact)}
-                style={{ margin: '10px 5px', padding: '5px 15px' }}
-            >
-                {isCompact ? 'Обычный вид' : 'Компактный вид'}
-            </button>
-            <StatsPanel data={data} />
-            {showSumPanel && (
-                <div
-                    style={{
-                        padding: '10px',
-                        margin: '10px 0',
-                        backgroundColor: '#f5f5f5',
-                        borderRadius: '4px',
-                        display: 'flex',
-                        gap: '20px',
-                        alignItems: 'center',
-                        // position: 'fixed'
-                    }}
+                <StatsPanel data={data} />
+                <button
+                    onClick={toggleColumns}
+                    style={{ margin: '10px 0', padding: '5px 15px' }}
                 >
-                    <div>
-                        <strong>Выделено строк: </strong>
-                        <span
-                            style={{
-                                padding: '2px',
-                            }}
-                        >
-                            {selectedIds.size}
-                        </span>
-                    </div>
-                    <div>
-                        <strong>Вес: </strong>{' '}
-                        <span
-                            style={{
-                                backgroundColor: 'rgb(224, 224, 224)',
-                                borderRadius: '6px',
-                                padding: '2px',
-                            }}
-                        >
-                            &nbsp; {sumJ} &nbsp;
-                        </span>
-                    </div>
-                    <div>
-                        <strong>Объем: </strong>
-                        <span
-                            style={{
-                                backgroundColor: 'rgb(224, 224, 224)',
-                                borderRadius: '6px',
-                                padding: '2px',
-                            }}
-                        >
-                            &nbsp; {sumK} &nbsp;
-                        </span>
-                    </div>
-                    <div>
-                        <strong>Паллет: </strong>
-                        <span
-                            style={{
-                                backgroundColor: 'rgb(224, 224, 224)',
-                                borderRadius: '6px',
-                                padding: '2px',
-                            }}
-                        >
-                            &nbsp; {sumX} &nbsp;
-                        </span>
-                    </div>
-
-                    <button
-                        onClick={resetSelection}
+                    {hiddenColumns.length
+                        ? 'Показать все стоблцы'
+                        : 'Скрыть неиспользуемые столбцы'}
+                </button>
+                <button
+                    onClick={() => setIsCompact(!isCompact)}
+                    style={{ margin: '10px 5px', padding: '5px 15px' }}
+                >
+                    {isCompact ? 'Обычный вид' : 'Компактный вид'}
+                </button>
+                {showSumPanel && (
+                    <div
                         style={{
-                            padding: '5px 10px',
-                            backgroundColor: '#ff9900',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '3px',
-                            cursor: 'pointer',
+                            padding: '10px',
+                            margin: '10px 0',
+                            backgroundColor: '#f5f5f5',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            gap: '20px',
+                            alignItems: 'center',
+                            // position: 'fixed'
                         }}
                     >
-                        Сбросить
-                    </button>
-                </div>
-            )}
-            {/* <datalist id="addressList">
-                {addresses.map((address, index) => (
-                    <option key={index} value={ address} />
-                ))}
-            </datalist> */}
-            {/* <table style={{ with: '100%', borderCollapse: 'separate' }}> */}
-            <table
-                style={{
-                    with: '100%',
-                    borderCollapse: 'collapse',
-                    margin: '4px',
-                }}
-            >
-                <thead>
-                    <tr>
-                        {filterHeaders.map((header) => (
-                            <th key={header}>{header}</th>
-                        ))}
-                    </tr>
-                </thead>
+                        <div>
+                            <strong>Выделено строк: </strong>
+                            <span
+                                style={{
+                                    padding: '2px',
+                                }}
+                            >
+                                {selectedIds.size}
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Вес: </strong>{' '}
+                            <span
+                                style={{
+                                    backgroundColor: 'rgb(224, 224, 224)',
+                                    borderRadius: '6px',
+                                    padding: '2px',
+                                }}
+                            >
+                                &nbsp; {sumJ} &nbsp;
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Объем: </strong>
+                            <span
+                                style={{
+                                    backgroundColor: 'rgb(224, 224, 224)',
+                                    borderRadius: '6px',
+                                    padding: '2px',
+                                }}
+                            >
+                                &nbsp; {sumK} &nbsp;
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Паллет: </strong>
+                            <span
+                                style={{
+                                    backgroundColor: 'rgb(224, 224, 224)',
+                                    borderRadius: '6px',
+                                    padding: '2px',
+                                }}
+                            >
+                                &nbsp; {sumX} &nbsp;
+                            </span>
+                        </div>
 
-                <tbody>
-                    {/* {sortedData.map(row => ())} */}
-                    {sortedData.map((row, rowIndex) => (
-                        <tr
-                            key={row.B}
-                            onClick={(e) => handleRowClick(e, row)}
-                            // style={isCompact ? compactStyles.tr : {}}
+                        <button
+                            onClick={resetSelection}
                             style={{
-                                // backgroundColor: row.V[0]  ? 'lightgray' : 'none',
-                                borderTop: row.V[0]
-                                    ? '7px solid rgb(211 177 230)'
-                                    : 'none',
-                                // border: row.V[0] ? '2px solid blue' : 'none',
-                                position: 'relative',
-                                // cursor: 'pointer',
-
-                                backgroundColor: selectedIds.has(row.B)
-                                    ? '#e0e0e0'
-                                    : 'rgb(248, 249, 250)',
-
-                                transition: 'background-color 0.2s',
-                                ...(isCompact ? compactStyles.td : {}),
+                                padding: '5px 10px',
+                                backgroundColor: '#ff9900',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '3px',
+                                cursor: 'pointer',
                             }}
                         >
-                            {/* {alert(rowIndex)} */}
-                            {filterHeaders.map((header, cellIndex) => (
-                                <td
-                                    key={header}
-                                    ref={(el) =>
-                                        (cellsRef.current[
-                                            rowIndex * 100 + cellIndex
-                                        ] = el)
-                                    }
-                                    style={{
-                                        border: '1px solid #ddd',
-                                        ...getCellStyle(header, row),
-                                        ...(isCompact ? compactStyles.td : {}),
-                                        // position: 'relative',
-                                        // minWidth: '200px'
-                                        // width: '400em',
-                                        // ...(isCompact && {
-                                        //     whiteSpace: 'nowrap',
-                                        //     overflow: 'hidden',
-                                        //     textOverflow: 'ellipsis',
-                                        //     maxWidth: '200px',
-                                        // }),
-                                    }}
-                                >
-                                    {header === 'F' ? (
-                                        <input
-                                            defaultValue={row[header]}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    // e.target.scrollTop = 0;
-                                                    e.target.blur();
-                                                }
-                                            }}
-                                            onBlur={(e) =>
-                                                handleChange(
-                                                    row.B,
-                                                    header,
-                                                    e.target.value
-                                                )
-                                            }
-                                            style={{ width: '10em' }}
-                                        />
-                                    ) : header === 'V' ? (
-                                        <>
-                                            <input
-                                                // list="addressList"
-                                                list={row['B'] + '_V'}
-                                                // value={row[header][0]}
-                                                defaultValue={row[header][0]}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        // e.target.scrollTop = 0;
-                                                        e.target.blur();
-                                                    }
-                                                }}
-                                                onBlur={(e) =>
-                                                    handleChange_V(
-                                                        row.B,
-                                                        header,
-                                                        e,
-                                                        row[header]
-                                                    )
-                                                }
-                                            />
-                                            <datalist id={row['B'] + '_V'}>
-                                                {row[header].map(
-                                                    (address, index) => (
-                                                        <option
-                                                            key={index}
-                                                            value={address}
-                                                        />
-                                                    )
-                                                )}
-                                            </datalist>
-                                        </>
-                                    ) : header === 'Y' ? (
-                                        <textarea
-                                            ref={textareaRef}
-                                            type="text"
-                                            defaultValue={row[header]}
-                                            className="full-cell-textarea"
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    // e.target.scrollTop = 0;
-                                                    e.target.blur();
-                                                }
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.scrollTop = 0;
-                                                handleChange(
-                                                    row.B,
-                                                    header,
-                                                    e.target.value
-                                                );
-                                            }}
-                                        />
-                                    ) : header === 'W' ? (
-                                        <select
-                                            // value={row[header]?.value}
-                                            className={
-                                                row[header].value !== ''
-                                                    ? 'beige-with-value'
-                                                    : ''
-                                            }
-                                            defaultValue={row[header].value}
-                                            onBlur={(e) => {
-                                                // console.log(e.target.value);
-                                                handleChange_W_or_X(
-                                                    row.B,
-                                                    header,
-                                                    e
-                                                );
-                                            }}
-                                            // style={{ width: '10em' }}
-                                            // list="addressList"
-                                            // list={row['B'] + '_V'}
-                                            // value={row[header][0]}
-                                            // defaultValue={row[header][0]}
-                                            // onBlur={(e) =>
-                                            //     handleChange_V(
-                                            //         row.B,
-                                            //         header,
-                                            //         e,
-                                            //         row[header]
-                                            //     )
-                                            // }
-                                        >
-                                            {row[header].options.map(
-                                                (option) => (
-                                                    <option
-                                                        key={option}
-                                                        value={option}
-                                                    >
-                                                        {option}
-                                                    </option>
-                                                )
-                                            )}
-                                        </select>
-                                    ) : header === 'X' ? (
-                                        <select
-                                            className={
-                                                row[header].value !== ''
-                                                    ? 'beige-with-value'
-                                                    : ''
-                                            }
-                                            defaultValue={row[header].value}
-                                            onBlur={(e) =>
-                                                // console.log(e.target.value)
-                                                handleChange_W_or_X(
-                                                    row.B,
-                                                    header,
-                                                    e
-                                                )
-                                            }
-                                            // list="addressList"
-                                            // list={row['B'] + '_V'}
-                                            // value={row[header][0]}
-                                            // defaultValue={row[header][0]}
-                                            // onBlur={(e) =>
-                                            //     handleChange_V(
-                                            //         row.B,
-                                            //         header,
-                                            //         e,
-                                            //         row[header]
-                                            //     )
-                                            // }
-                                        >
-                                            {row[header].options.map(
-                                                (option) => (
-                                                    <option
-                                                        key={option}
-                                                        value={option}
-                                                    >
-                                                        {option}
-                                                    </option>
-                                                )
-                                            )}
-                                        </select>
-                                    ) : (
-                                        row[header]
-                                    )}
-                                </td>
+                            Сбросить
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+            >
+                <table
+                    style={{
+                        with: '100%',
+                        borderCollapse: 'collapse',
+                        marginBottom: '20px',
+                    }}
+                >
+                    <thead>
+                        <tr>
+                            {filterHeaders.map((header) => (
+                                <th key={header}>{header}</th>
                             ))}
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+
+                    <tbody>
+                        <SortableContext
+                            items={sortedData.map((row) => row.B)}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            {/* {sortedData.map(row => ())} */}
+                            {sortedData.map((row, rowIndex) => (
+                                <SortableRow
+                                    key={row.B}
+                                    row={row}
+                                    handleRowClick={handleRowClick}
+                                    filterHeaders={filterHeaders}
+                                    isCompact={isCompact}
+                                    getCellStyle={getCellStyle}
+                                    selectedIds={selectedIds}
+                                    cellsRef={cellsRef}
+                                    handleChange={handleChange}
+                                    handleChange_V={handleChange_V}
+                                    handleChange_W_or_X={handleChange_W_or_X}
+                                />
+                            ))}
+                        </SortableContext>
+                    </tbody>
+                </table>
+            </DndContext>
         </div>
     );
 }
+
+// <tr
+//     key={row.B}
+//     onClick={(e) => handleRowClick(e, row)}
+//     // style={isCompact ? compactStyles.tr : {}}
+//     style={{
+//         // backgroundColor: row.V[0]  ? 'lightgray' : 'none',
+//         borderTop: row.V[0]
+//             ? '7px solid rgb(211 177 230)'
+//             : 'none',
+//         // border: row.V[0] ? '2px solid blue' : 'none',
+//         position: 'relative',
+//         // cursor: 'pointer',
+
+//         backgroundColor: selectedIds.has(row.B)
+//             ? '#e0e0e0'
+//             : 'rgb(248, 249, 250)',
+
+//         transition: 'background-color 0.2s',
+//         ...(isCompact ? compactStyles.td : {}),
+//     }}
+// >
+//     {/* {alert(rowIndex)} */}
+//     {filterHeaders.map((header, cellIndex) => (
+//         <td
+//             key={header}
+//             ref={(el) =>
+//                 (cellsRef.current[
+//                     rowIndex * 100 + cellIndex
+//                 ] = el)
+//             }
+//             style={{
+//                 border: '1px solid #ddd',
+//                 ...getCellStyle(header, row),
+//                 ...(isCompact
+//                     ? compactStyles.td
+//                     : {}),
+//                 // position: 'relative',
+//                 // minWidth: '200px'
+//                 // width: '400em',
+//                 // ...(isCompact && {
+//                 //     whiteSpace: 'nowrap',
+//                 //     overflow: 'hidden',
+//                 //     textOverflow: 'ellipsis',
+//                 //     maxWidth: '200px',
+//                 // }),
+//             }}
+//         >
+//             {header === 'F' ? (
+//                 <input
+//                     defaultValue={row[header]}
+//                     onKeyDown={(e) => {
+//                         if (e.key === 'Enter') {
+//                             e.preventDefault();
+//                             // e.target.scrollTop = 0;
+//                             e.target.blur();
+//                         }
+//                     }}
+//                     onBlur={(e) =>
+//                         handleChange(
+//                             row.B,
+//                             header,
+//                             e.target.value
+//                         )
+//                     }
+//                     style={{ width: '10em' }}
+//                 />
+//             ) : header === 'V' ? (
+//                 <>
+//                     <input
+//                         // list="addressList"
+//                         list={row['B'] + '_V'}
+//                         // value={row[header][0]}
+//                         defaultValue={
+//                             row[header][0]
+//                         }
+//                         onKeyDown={(e) => {
+//                             if (
+//                                 e.key ===
+//                                 'Enter'
+//                             ) {
+//                                 e.preventDefault();
+//                                 // e.target.scrollTop = 0;
+//                                 e.target.blur();
+//                             }
+//                         }}
+//                         onBlur={(e) =>
+//                             handleChange_V(
+//                                 row.B,
+//                                 header,
+//                                 e,
+//                                 row[header]
+//                             )
+//                         }
+//                     />
+//                     <datalist
+//                         id={row['B'] + '_V'}
+//                     >
+//                         {row[header].map(
+//                             (
+//                                 address,
+//                                 index
+//                             ) => (
+//                                 <option
+//                                     key={index}
+//                                     value={
+//                                         address
+//                                     }
+//                                 />
+//                             )
+//                         )}
+//                     </datalist>
+//                 </>
+//             ) : header === 'Y' ? (
+//                 <textarea
+//                     ref={textareaRef}
+//                     type="text"
+//                     defaultValue={row[header]}
+//                     className="full-cell-textarea"
+//                     onKeyDown={(e) => {
+//                         if (e.key === 'Enter') {
+//                             e.preventDefault();
+//                             // e.target.scrollTop = 0;
+//                             e.target.blur();
+//                         }
+//                     }}
+//                     onBlur={(e) => {
+//                         e.target.scrollTop = 0;
+//                         handleChange(
+//                             row.B,
+//                             header,
+//                             e.target.value
+//                         );
+//                     }}
+//                 />
+//             ) : header === 'W' ? (
+//                 <select
+//                     // value={row[header]?.value}
+//                     className={
+//                         row[header].value !== ''
+//                             ? 'beige-with-value'
+//                             : ''
+//                     }
+//                     defaultValue={
+//                         row[header].value
+//                     }
+//                     onBlur={(e) => {
+//                         // console.log(e.target.value);
+//                         handleChange_W_or_X(
+//                             row.B,
+//                             header,
+//                             e
+//                         );
+//                     }}
+//                     // style={{ width: '10em' }}
+//                     // list="addressList"
+//                     // list={row['B'] + '_V'}
+//                     // value={row[header][0]}
+//                     // defaultValue={row[header][0]}
+//                     // onBlur={(e) =>
+//                     //     handleChange_V(
+//                     //         row.B,
+//                     //         header,
+//                     //         e,
+//                     //         row[header]
+//                     //     )
+//                     // }
+//                 >
+//                     {row[header].options.map(
+//                         (option) => (
+//                             <option
+//                                 key={option}
+//                                 value={option}
+//                             >
+//                                 {option}
+//                             </option>
+//                         )
+//                     )}
+//                 </select>
+//             ) : header === 'X' ? (
+//                 <select
+//                     className={
+//                         row[header].value !== ''
+//                             ? 'beige-with-value'
+//                             : ''
+//                     }
+//                     defaultValue={
+//                         row[header].value
+//                     }
+//                     onBlur={(e) =>
+//                         // console.log(e.target.value)
+//                         handleChange_W_or_X(
+//                             row.B,
+//                             header,
+//                             e
+//                         )
+//                     }
+//                     // list="addressList"
+//                     // list={row['B'] + '_V'}
+//                     // value={row[header][0]}
+//                     // defaultValue={row[header][0]}
+//                     // onBlur={(e) =>
+//                     //     handleChange_V(
+//                     //         row.B,
+//                     //         header,
+//                     //         e,
+//                     //         row[header]
+//                     //     )
+//                     // }
+//                 >
+//                     {row[header].options.map(
+//                         (option) => (
+//                             <option
+//                                 key={option}
+//                                 value={option}
+//                             >
+//                                 {option}
+//                             </option>
+//                         )
+//                     )}
+//                 </select>
+//             ) : (
+//                 row[header]
+//             )}
+//         </td>
+//     ))}
+// </tr>;

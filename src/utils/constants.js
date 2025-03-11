@@ -31,6 +31,7 @@ export const TABLE_HEAD = {
     W: 'Плательщик',
     X: 'Паллет',
     Y: 'Проверенный коммент',
+    Z: 'Стилизация'
 };
 
 // желаемый порядок столбцов
@@ -49,6 +50,7 @@ export const COLUMN_ORDER = [
     'V',
     'L',
     'M',
+    'Z',
 ];
 // столбцы скрываемые
 export const COLUMN_HIDDEN = [

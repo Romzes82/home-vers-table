@@ -3,20 +3,24 @@
   border: 1px dashed #ccc;
   text-align: center;
   background-color: #ccc;
-  position: sticky;
-  top: 0;
-  width: 100%; /* Шапка займёт всю ширину окна браузера */
+  position: fixed; 
+  top: 0; 
+  right: 0;
+  width: 10%; /* Шапка займёт всю ширину окна браузера */
   z-index: 10; /* Высокое значение, чтобы шапка была всегда на первом плане */
+  border-radius: 0% 0% 0% 50px;
+  opacity: 60%;
 
 }
 
 .drop-zone {
-  padding: 20px;
+  /* padding: 20px; */
   cursor: pointer;
 }
 
 .drop-message {
-  margin-top: 5px;
+  margin-bottom: 5px;
+  padding-left: 15px; 
   color: #666;
 }
 

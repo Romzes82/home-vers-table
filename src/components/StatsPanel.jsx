@@ -35,11 +35,12 @@ const StatsPanel = ({ data }) => {
     return (
         <div
             style={{
-                margin: '20px 0',
+                margin: '0px 0px 10px 0',
                 padding: '3px',
                 border: '1px solid #ddd',
                 borderRadius: '8px',
                 backgroundColor: '#f8f9fa',
+                opacity: '60%',
             }}
         >
             <div

@@ -97,3 +97,19 @@ tr {
     background-color: #f4eddf;
     
 }
+
+.line-through {
+  position: relative;
+  overflow: hidden;
+}
+
+.line-through::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 2px;
+  background: red;
+  transform: rotate(-45deg);
+}
