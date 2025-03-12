@@ -101,9 +101,12 @@ tr {
 .line-through {
   position: relative;
   overflow: hidden;
+  text-decoration: line-through 2px #000;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.line-through::after {
+/* .line-through::after {
   content: '';
   position: absolute;
   left: 0;
@@ -112,4 +115,10 @@ tr {
   height: 2px;
   background: red;
   transform: rotate(-45deg);
+} */
+
+.text-cell-content {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
 }

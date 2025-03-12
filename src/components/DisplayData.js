@@ -75,7 +75,11 @@ const SortableRow = ({
                         key={header}
                         {...(isDraggableCell ? attributes : {})}
                         {...(isDraggableCell ? listeners : {})}
-                        ref={(el) => (cellsRef.current[row.B + cellIndex] = el)}
+                        ref={(el) => {
+                            // Используем безопасный ключ: row.B + header
+                            const key = `${row.B}_${header}`;
+                            cellsRef.current[key] = el;
+                        }}
                         // ref={(el) => (cellsRef.current[row.B + cellIndex] = el)}
                         style={{
                             cursor: isDraggableCell ? 'grab' : 'default',
@@ -86,6 +90,15 @@ const SortableRow = ({
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 maxWidth: '250px',
+
+                                // гарантируем, что вложенные элементы наследуют стили
+                                '& > *': {
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    display: 'inline-block',
+                                    maxWidth: '100%',
+                                },
                             }),
                         }}
                     >
@@ -116,11 +129,15 @@ const renderCellContent = (
         case 'E':
             return (
                 <div
+                    // className={
+                    //     row.Z?.crossedCellClient !== false ? 'line-through' : ''
+                    // }
                     style={{
                         textDecoration: row.Z?.crossedCellClient
                             ? 'line-through 2px #000'
                             : 'none',
-                        // cursor: 'pointer',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
                     }}
                     onClick={(e) => {
                         if (e.altKey) {
@@ -142,6 +159,8 @@ const renderCellContent = (
                         textDecoration: row.Z?.crossedCellAddress
                             ? 'line-through 2px #000'
                             : 'none',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
                         // cursor: 'pointer',
                     }}
                     onClick={(e) => {
@@ -248,9 +267,10 @@ const renderCellContent = (
             );
 
         default:
-            // <span data-value={row[header]?.value ?? row[header]}>
-                return row[header]?.value ?? row[header];
-           // </span> */}
+            return row[header]?.value ?? row[header];
+            // <span className="text-cell-conten">
+            //     {row[header]?.value ?? row[header]}
+            // </span>; 
     }
 };
 
@@ -299,21 +319,48 @@ export default function DisplayData({
 
     // ... (все функции, стили и обработчики остаются как были)
 
+    //  Модифицируйте useEffect для обработки сложных ID:**
     // Проверка обрезания текста и обновление title
     useEffect(() => {
-     cellsRef.current.forEach((cell) => {
-        console.log(cellsRef.current);
-         if (cell) {
-             if (cell && isCompact) {
-                //  console.log(cell);
-                 const isTruncated = cell.scrollWidth > cell.clientWidth;
-                 cell.title = isTruncated ? cell.textContent : '';
-             } else {
-                 cell.title = '';
-             }
-         }
-     });
+        // console.log('Current refs:', Object.keys(cellsRef.current));
+        Object.keys(cellsRef.current).forEach((key) => {
+            const cell = cellsRef.current[key];
+            if (!cell) return;
+            // Пропускаем ячейки с интерактивными элементами
+            if (cell.querySelector('input, select, textarea')) {
+                cell.title = '';
+                return;
+            }
+            // Проверка обрезания текста. Но учтем, что в E и Q текст находится в узле div
+            if (cell.lastChild instanceof HTMLDivElement) {
+                // console.log(cell.lastChild instanceof HTMLDivElement);
+                const isTruncated =
+                    cell.lastChild.scrollWidth > cell.lastChild.clientWidth;
+                cell.title = isTruncated
+                    ? cell.lastChild.textContent.trim()
+                    : '';
+            } else { 
+                const isTruncated = cell.scrollWidth > cell.clientWidth;
+                cell.title = isTruncated ? cell.textContent.trim() : '';
+            }
+        });
     }, [isCompact, data]);
+
+    // Проверка обрезания текста и обновление title - старое
+    // useEffect(() => {
+    //     cellsRef.current.forEach((cell) => {
+    //         console.log(cellsRef.current);
+    //         if (cell) {
+    //             if (cell && isCompact) {
+    //                 //  console.log(cell);
+    //                 const isTruncated = cell.scrollWidth > cell.clientWidth;
+    //                 cell.title = isTruncated ? cell.textContent : '';
+    //             } else {
+    //                 cell.title = '';
+    //             }
+    //         }
+    //     });
+    // }, [isCompact, data]);
 
     // Стили для компактного режима
     // const compactStyles = {
@@ -556,15 +603,13 @@ export default function DisplayData({
     return (
         <div className="displayData">
             <div
-                style={
-                    {
-                        position: 'sticky',
-                        top: '0px',
-                        width: '100%',
-                        zIndex: '10',
-                        backgroundColor: "white",
-                    }
-                }
+                style={{
+                    position: 'sticky',
+                    top: '0px',
+                    width: '100%',
+                    zIndex: '10',
+                    backgroundColor: 'white',
+                }}
             >
                 <StatsPanel data={data} />
                 <button
