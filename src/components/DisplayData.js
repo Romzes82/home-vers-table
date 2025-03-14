@@ -56,7 +56,7 @@ const SortableRow = ({
             ref={setNodeRef}
             style={{
                 ...style,
-                borderTop: row.V[0] ? '7px solid rgb(211 177 230)' : 'none',
+                borderTop: row.V[0] ? '4px solid rgb(211 177 230)' : 'none',
                 backgroundColor: selectedIds.has(row.B)
                     ? '#e0e0e0'
                     : 'rgb(248, 249, 250)',
@@ -290,8 +290,8 @@ export default function DisplayData({
     // Реф для отслеживания выполнения начальной сортировки
     const initialSortDone = useRef(false);
 
+    console.log(data);
     // Эффект для единоразовой сортировки при загрузке
-
     useEffect(() => {
         if (
             !initialSortDone.current &&
@@ -370,21 +370,6 @@ export default function DisplayData({
         });
     }, [isCompact, data]);
 
-    // Проверка обрезания текста и обновление title - старое
-    // useEffect(() => {
-    //     cellsRef.current.forEach((cell) => {
-    //         console.log(cellsRef.current);
-    //         if (cell) {
-    //             if (cell && isCompact) {
-    //                 //  console.log(cell);
-    //                 const isTruncated = cell.scrollWidth > cell.clientWidth;
-    //                 cell.title = isTruncated ? cell.textContent : '';
-    //             } else {
-    //                 cell.title = '';
-    //             }
-    //         }
-    //     });
-    // }, [isCompact, data]);
 
     // Стили для компактного режима
     // const compactStyles = {

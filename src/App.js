@@ -1,11 +1,67 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import localForage from 'localforage';
 import UploadFiles from './components/UploadFiles';
 import DisplayData from './components/DisplayData';
 import './App.css';
 
+// Вспомогательные функции
+const extractNumbersFromString = (str) => {
+    const regex = /\b\d{3}-\d{3}-\d{2}-\d{2}\b/g;
+
+    return str ? str.match(regex) || [] : [];
+};
+
+const processMoscowItem = async (item) => {
+    if (!item.S) return;
+        try {
+            const response = await fetch(
+                `http://localhost:8888/delivery/get-by-inn?inn=${item.S}`
+            );
+
+            //проверка статуса ответа
+            if (!response.ok) { 
+                return { ...item, V: [] };
+            }
+
+            const data = await response.json();
+            console.log('data')
+            console.log(data);
+            return { ...item, V: data.addresses || [] };
+        } catch (error) {
+            console.error('Ошибка обработки Москвы:', error);
+            return { ...item, V: [] };
+            // return item;
+        }
+};
+
+const processTKItem = async (item) => {
+    try {
+        const numbers = extractNumbersFromString(item.L || item.M);
+        if (numbers.length === 0) return;
+        const requests = numbers.map((num) =>
+            fetch(`http://localhost:8888/get-by-number?number=${num}`).then(
+                (res) => res.json()
+            )
+        );
+        const results = await Promise.all(requests);
+        const addresses = results.flatMap((res) => res.branches);
+        const company = results[0]?.company || item.F;
+
+        return {
+            ...item,
+            F: company,
+            V: addresses,
+        };
+    } catch (error) {
+        console.error('Ошибка обработки ТК:', error);
+
+        return item;
+    }
+};
+
 export default function App() {
     const [tableData, setTableData] = useState([]);
+
     const [fileHistory, setFileHistory] = useState({
         current: [],
         previous: [],
@@ -21,7 +77,6 @@ export default function App() {
                 localForage.getItem('fileHistory'),
                 localForage.getItem('tableOrder'),
             ]);
-
             setTableData(savedData || []);
             setFileHistory(savedHistory || { current: [], previous: [] });
             setTableOrder(savedOrder || []);
@@ -31,6 +86,7 @@ export default function App() {
     }, []);
 
     // Сохранение данных
+
     useEffect(() => {
         const saveData = async () => {
             await Promise.all([
@@ -43,100 +99,114 @@ export default function App() {
         saveData();
     }, [tableData, fileHistory, tableOrder]);
 
-    // Обработка загрузки файла
-
-    const handleUpload = (newData) => {
-        // ... существующая логика handleUpload без изменений ...
-        // сохраняем предыдущую версию данных перед обновлением
-        const previousData = fileHistory.current;
-
-        // обновляем историю файлов
-        setFileHistory((prev) => ({
-            current: newData,
-            previous: prev.current, // сохраняем предыдущую версию
-        }));
-
-        // находим удаленные строки
-        const removedRows = previousData.filter(
-            (prevRow) => !newData.some((newRow) => newRow.B === prevRow.B)
-        );
-
-        // alert для удаленных строк
-        if (removedRows.length > 0) {
-            const removedInvoices = removedRows.map((row) => row.B).join(', ');
-            alert(`Удалены счета : ${removedInvoices}`);
-            console.log(`Удалены счета : ${removedInvoices}`);
-        }
-
-
-        // изменение предыдущего состояния таблицы при handleUpload
-        setTableData((prev) =>
-            // допишем к пред. состоянию только новые счета
-            // также надо учесть, что при наличии новых счетов, надо скоприовать единожды комментарий L в Y
-            newData.map((newRow) => {
-                //находим соответствующую строку в !предыдущих! данных, т.е. exisningRow - это строка объект пред.
-                // данных. И так для каждой новой строки newRow
-                const exisningRow = prev.find((r) => r.B === newRow.B);
-                // console.log(exisningRow);
-                // если строка соответсвует в предыдущих данных
-                if (exisningRow) {
-                    if (
-                        // это проверка на пустое/пробел значение в комментарии пред. знач
-                        exisningRow.Y.length !== '' ||
-                        exisningRow.Y.length !== ' '
-                    ) {
-                        // если пред. откорректированный комментарий уже имеет строку не '' или ' ', то предыдущее значение Y сохраним
-                        // в новом значении Y. Иначе в новом Y сохраняем предыдущий L
-                        // console.log(exisningRow.Y);
-                        return {
-                            ...newRow, // берем все поля из новой строки-объекта
-                            F: exisningRow.F, //сохраняем F из предыдущей версии
-                            V: exisningRow.V,
-                            W: exisningRow.W,
-                            X: exisningRow.X,
-                            Y: exisningRow.Y,
-                            Z: exisningRow.Z,
-                        };
-                    } else {
-                        return {
-                            ...newRow, // берем все поля из новой строки-объекта
-                            F: exisningRow.F, //сохраняем F из предыдущей версии
-                            V: exisningRow.V,
-                            W: exisningRow.W,
-                            X: exisningRow.X,
-                            Y: exisningRow.L,
-                            Z: exisningRow.Z,
-                        };
-                    }
+    const processNewItems = useCallback(async (items) => {
+        return await Promise.all(
+            items.map(async (item) => {
+                if (item.F === 'Москва и область') {
+                    return await processMoscowItem(item);
                 }
-                // если это полностью новая строка
+
+                if (item.F.startsWith('тк')) {
+                    return await processTKItem(item);
+                }
+
+                return item;
+            })
+        );
+    }, []);
+
+    const handleUpload = useCallback(
+        async (newData) => {
+            // Сохраняем предыдущую версию данных
+            const previousData = fileHistory.current;
+            // Находим удаленные строки
+            const removedRows = previousData.filter(
+                (prevRow) => !newData.some((newRow) => newRow.B === prevRow.B)
+            );
+
+            // Alert для удаленных строк
+            if (removedRows.length > 0) {
+                const removedInvoices = removedRows
+                    .map((row) => row.B)
+                    .join(', ');
+
+                alert(`Удалены счета: ${removedInvoices}`);
+            }
+
+            // Подготовка базовых данных
+            const baseData = newData.map((newRow) => {
+                const existingRow = tableData.find((r) => r.B === newRow.B);
+
+                if (existingRow) {
+                    const YValue =
+                        existingRow.Y?.trim() !== '' &&
+                        existingRow.Y?.trim() !== ' '
+                            ? existingRow.Y
+                            : existingRow.L;
+
+                    return {
+                        ...newRow,
+                        F: existingRow.F,
+                        V: existingRow.V,
+                        W: existingRow.W,
+                        X: existingRow.X,
+                        Y: YValue,
+                        Z: existingRow.Z,
+                    };
+                }
+
                 return {
                     ...newRow,
                     Y: newRow.L || '',
+                    F: newRow.F || 'loading...',
+                    V: [],
                 };
-            })
-        );
+            });
 
-        // Обновление ПОРЯДКА при добавлении новых данных
-
-        setTableOrder((prevOrder) => {
-            const newIds = newData.map((row) => row.B);
-            const filteredOrder = prevOrder.filter((id) =>
-                newData.some((row) => row.B === id)
+            // Фильтруем новые элементы для обработки
+            const newItems = baseData.filter(
+                (item) => !tableData.some((prevItem) => prevItem.B === item.B)
             );
 
-            return [
-                ...filteredOrder,
-                ...newIds.filter((id) => !prevOrder.includes(id)),
-            ];
-        });
-    };
+            // Обрабатываем новые элементы
+            let processedItems = baseData;
 
-    // Обработчик изменения порядка
+            if (newItems.length > 0) {
+                const updatedItems = await processNewItems(newItems);
+                processedItems = baseData.map(
+                    (item) => updatedItems.find((u) => u.B === item.B) || item
+                );
+            }
 
-    const handleOrderChange = (newOrder) => {
+            // Обновляем состояние
+            setTableData(processedItems);
+
+            setFileHistory((prev) => ({
+                current: newData,
+
+                previous: prev.current,
+            }));
+
+            // Обновление порядка
+            setTableOrder((prevOrder) => {
+                const newIds = newData.map((row) => row.B);
+                const filteredOrder = prevOrder.filter((id) =>
+                    newData.some((row) => row.B === id)
+                );
+
+                return [
+                    ...filteredOrder,
+
+                    ...newIds.filter((id) => !prevOrder.includes(id)),
+                ];
+            });
+        },
+        [tableData, fileHistory.current, processNewItems]
+    );
+
+    const handleOrderChange = useCallback((newOrder) => {
         setTableOrder(newOrder);
-    };
+    }, []);
 
     return (
         <div>

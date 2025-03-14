@@ -56,6 +56,11 @@ const UploadFiles = ({ onUpload }) => {
                 // processed[elemInArr] = processed[elemInArr] || '';
                 if (elemInArr in element) {
                     // do something
+                    if (
+                        processed['F'] === 'Доставка по межгороду за наш счет'
+                    ) {
+                        processed['F'] = 'd_Доставка по межгороду за наш счет';
+                    }
                 } else {
                     processed[elemInArr] = '';
                 }
