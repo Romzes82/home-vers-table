@@ -56,13 +56,13 @@ const SortableRow = ({
             ref={setNodeRef}
             style={{
                 ...style,
-                borderTop: row.V[0] ? '4px solid rgb(211 177 230)' : 'none',
+                borderTop: row.V[0] ? '6px solid rgb(211 177 230)' : 'none',
                 backgroundColor: selectedIds.has(row.B)
                     ? '#e0e0e0'
                     : 'rgb(248, 249, 250)',
                 position: 'relative',
                 cursor: isDragging ? 'grabbing' : 'grab',
-                ...(isCompact && { height: '30px' }),
+                ...(isCompact),
             }}
             // {...attributes}
             // {...listeners}
@@ -290,7 +290,7 @@ export default function DisplayData({
     // Реф для отслеживания выполнения начальной сортировки
     const initialSortDone = useRef(false);
 
-    console.log(data);
+    // console.log(data);
     // Эффект для единоразовой сортировки при загрузке
     useEffect(() => {
         if (

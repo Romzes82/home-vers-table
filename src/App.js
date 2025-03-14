@@ -6,7 +6,7 @@ import './App.css';
 
 // Вспомогательные функции
 const extractNumbersFromString = (str) => {
-    const regex = /\b\d{3}-\d{3}-\d{2}-\d{2}\b/g;
+    const regex = /\(\d{3}\) \d{3}-\d{2}-\d{2}/g;
 
     return str ? str.match(regex) || [] : [];
 };
@@ -24,8 +24,8 @@ const processMoscowItem = async (item) => {
             }
 
             const data = await response.json();
-            console.log('data')
-            console.log(data);
+            // console.log('data')
+            // console.log(data);
             return { ...item, V: data.addresses || [] };
         } catch (error) {
             console.error('Ошибка обработки Москвы:', error);
@@ -34,30 +34,77 @@ const processMoscowItem = async (item) => {
         }
 };
 
+
 const processTKItem = async (item) => {
     try {
         const numbers = extractNumbersFromString(item.L || item.M);
-        if (numbers.length === 0) return;
-        const requests = numbers.map((num) =>
-            fetch(`http://localhost:8888/get-by-number?number=${num}`).then(
-                (res) => res.json()
-            )
-        );
-        const results = await Promise.all(requests);
-        const addresses = results.flatMap((res) => res.branches);
-        const company = results[0]?.company || item.F;
+        console.log(numbers)
+        if (numbers.length === 0) return { ...item, V: [] };
+        const requests = numbers.map(async (num) => {
+            try {
+                const response = await fetch(`http://localhost:8888/tk/get-by-number?number=${num}`);
+               
+                // Обрабатываем HTTP-ошибки
+                if (!response.ok) {
+                    console.error(`Ошибка ${response.status} для номера ${num}`);
+                    return { branches: [] };
+                }
+               
+                return await response.json();
+            } catch (error) {
+                console.error(`Ошибка запроса для номера ${num}:`, error);
+                return { branches: [] };
+            }
+        });
 
+        const results = await Promise.all(requests);
+        console.log('results')
+            console.log(results);
+        // Извлекаем адреса с fallback
+        const addresses = results.flatMap(res => res.branches || []);
+     
+        // Выбираем компанию с проверкой всех результатов
+        const company = results.find(r => r?.company)?.company || item.F;
         return {
             ...item,
             F: company,
-            V: addresses,
+            V: addresses
         };
-    } catch (error) {
-        console.error('Ошибка обработки ТК:', error);
 
-        return item;
+    } catch (error) {
+        console.error('Общая ошибка обработки ТК:', error);
+        return { 
+            ...item, 
+            V: [],
+            F: item.F // Сохраняем оригинальное значение при ошибке
+        };
     }
 };
+
+// const processTKItem = async (item) => {
+//     try {
+//         const numbers = extractNumbersFromString(item.L || item.M);
+//         if (numbers.length === 0 || typeof numbers === 'undefined') return;
+//         const requests = numbers.map((num) =>
+//             fetch(`http://localhost:8888/tk/get-by-number?number=${num}`).then(
+//                 (res) => res.json()
+//             )
+//         );
+//         const results = await Promise.all(requests);
+//         const addresses = results.flatMap((res) => res.branches);
+//         const company = results[0]?.company || item.F;
+
+//         return {
+//             ...item,
+//             F: company,
+//             V: addresses,
+//         };
+//     } catch (error) {
+//         console.error('Ошибка обработки ТК:', error);
+//         return { ...item, V: [] };
+//         // return item;
+//     }
+// };
 
 export default function App() {
     const [tableData, setTableData] = useState([]);

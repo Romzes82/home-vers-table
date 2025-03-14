@@ -73,7 +73,9 @@ tr {
     height: 100%;
     box-sizing: border-box;
     padding: 2px;
-    /* border: none; */
+    align-self: center;
+    /* margin: 2px; */
+    border: none;
     resize: none; /* Отключаем изменение размера */
     font-family: inherit;
     font-size: inherit;
