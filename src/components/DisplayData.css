@@ -124,3 +124,19 @@ tr {
   max-width: 100%;
   vertical-align: middle;
 }
+
+.custom-tooltip {
+  background: #77d2f5;
+  border: 1px solid #6f6f6f;
+  padding: 5px 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  max-width: 300px;
+  /* Исправления для переносов: */
+  white-space: pre-wrap; /* Сохраняет пробелы и переносы */
+  word-wrap: break-word; /* Перенос длинных слов */
+  overflow-wrap: break-word; /* Современный аналог word-wrap */
+  word-break: break-word; /* Оптимальный перенос слов */
+  font-size: 0.9em;
+  pointer-events: none;
+}

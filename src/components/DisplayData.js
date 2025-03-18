@@ -34,6 +34,8 @@ const SortableRow = ({
     handleChange,
     handleChange_V,
     handleChange_W_or_X,
+    tooltip,
+    setTooltip,
 }) => {
     const {
         attributes,
@@ -43,6 +45,14 @@ const SortableRow = ({
         transition,
         isDragging,
     } = useSortable({ id: row.B });
+
+    // Состояние для тултипа в V
+    // const [tooltip, setTooltip] = useState({
+    //     visible: false,
+    //     text: '',
+    //     x: 0,
+    //     y: 0,
+    // });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -62,7 +72,7 @@ const SortableRow = ({
                     : 'rgb(248, 249, 250)',
                 position: 'relative',
                 cursor: isDragging ? 'grabbing' : 'grab',
-                ...(isCompact),
+                ...isCompact,
             }}
             // {...attributes}
             // {...listeners}
@@ -107,7 +117,9 @@ const SortableRow = ({
                             row,
                             handleChange,
                             handleChange_V,
-                            handleChange_W_or_X
+                            handleChange_W_or_X,
+                            tooltip,
+                            setTooltip
                         )}
                     </td>
                 );
@@ -123,7 +135,9 @@ const renderCellContent = (
     row,
     handleChange,
     handleChange_V,
-    handleChange_W_or_X
+    handleChange_W_or_X,
+    tooltip,
+    setTooltip
 ) => {
     switch (header) {
         case 'E':
@@ -194,20 +208,58 @@ const renderCellContent = (
         case 'V':
             return (
                 <>
-                    <input
-                        list={`${row.B}_V`}
-                        defaultValue={row[header][0]}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.target.blur();
-                            }
+                    <div
+                        style={{
+                            position: 'relative',
+                            display: 'inline-block',
                         }}
-                        onBlur={(e) =>
-                            handleChange_V(row.B, header, e, row[header])
-                        }
-                    />
+                        onMouseEnter={(e) => {
+                            const input =
+                                e.currentTarget.querySelector('input');
+                            const rect = input.getBoundingClientRect();
 
+                            setTooltip({
+                                visible: true,
+                                text: input.value,
+                                x: rect.left + window.scrollX,
+                                y: rect.top + window.scrollY - 35,
+                            });
+                        }}
+                        onMouseLeave={() =>
+                            setTooltip({ ...tooltip, visible: false })
+                        }
+                    >
+                        <input
+                            list={`${row.B}_V`}
+                            defaultValue={row[header][0]}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    e.target.blur();
+                                }
+                            }}
+                            onBlur={(e) => {
+                                handleChange_V(row.B, header, e, row[header]);
+                                // console.log(tooltip.text, row[header][0]);
+                            }}
+                        />
+
+                        {tooltip.visible &&
+                            tooltip.text !== '' &&
+                            tooltip.text === row[header][0] && (
+                                <div
+                                    className="custom-tooltip"
+                                    style={{
+                                        position: 'fixed',
+                                        left: tooltip.x,
+                                        top: tooltip.y,
+                                        zIndex: 1000,
+                                    }}
+                                >
+                                    {tooltip.text}
+                                </div>
+                            )}
+                    </div>
                     <datalist id={`${row.B}_V`}>
                         {row[header].map((address, index) => (
                             <option key={index} value={address} />
@@ -215,6 +267,31 @@ const renderCellContent = (
                     </datalist>
                 </>
             );
+
+        // case 'V':
+        //     return (
+        //         <>
+        //             <input
+        //                 list={`${row.B}_V`}
+        //                 defaultValue={row[header][0]}
+        //                 onKeyDown={(e) => {
+        //                     if (e.key === 'Enter') {
+        //                         e.preventDefault();
+        //                         e.target.blur();
+        //                     }
+        //                 }}
+        //                 onBlur={(e) =>
+        //                     handleChange_V(row.B, header, e, row[header])
+        //                 }
+        //             />
+
+        //             <datalist id={`${row.B}_V`}>
+        //                 {row[header].map((address, index) => (
+        //                     <option key={index} value={address} />
+        //                 ))}
+        //             </datalist>
+        //         </>
+        //     );
 
         case 'Y':
             return (
@@ -268,9 +345,9 @@ const renderCellContent = (
 
         default:
             return row[header]?.value ?? row[header];
-            // <span className="text-cell-conten">
-            //     {row[header]?.value ?? row[header]}
-            // </span>; 
+        // <span className="text-cell-conten">
+        //     {row[header]?.value ?? row[header]}
+        // </span>;
     }
 };
 
@@ -289,6 +366,13 @@ export default function DisplayData({
     const cellsRef = useRef([]);
     // Реф для отслеживания выполнения начальной сортировки
     const initialSortDone = useRef(false);
+    // Состояние для тултипа в V
+    const [tooltip, setTooltip] = useState({
+        visible: false,
+        text: '',
+        x: 0,
+        y: 0,
+    });
 
     // console.log(data);
     // Эффект для единоразовой сортировки при загрузке
@@ -759,6 +843,8 @@ export default function DisplayData({
                                     handleChange={handleChange}
                                     handleChange_V={handleChange_V}
                                     handleChange_W_or_X={handleChange_W_or_X}
+                                    tooltip={tooltip}
+                                    setTooltip={setTooltip}
                                 />
                             ))}
                         </SortableContext>

@@ -47,7 +47,9 @@ const processMoscowItem = async (item) => {
 
 const processTKItem = async (item) => {
     try {
-        const numbers = extractNumbersFromString(item.L || item.M);
+        // const numbers = extractNumbersFromString(item.L || item.M);
+        const numbers = extractNumbersFromString(item.L);
+
         if (numbers.length === 0) return { ...item, V: [] };
         const response = await fetch(
             'http://localhost:8888/tk/get-by-numbers',
