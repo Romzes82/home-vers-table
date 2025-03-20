@@ -75,3 +75,60 @@ export function fullingDate(numShortDate) {
     const fullDateWithPoints = fullDate.slice(0, 2) + "." + fullDate.slice(2, 4) + "." + fullDate.slice(-4);
     return fullDateWithPoints;
 };
+
+// возвращает массив строк с инфой по филиалам ТК из получаемого объекта-ответа с сервера
+export function formatCompanyData(data) {
+    return data.branches.map((branch, index) => {
+        // Формируем строку для телефонов
+        const phonesStr =
+            'тел. ' +
+            data.phones[index]
+                .map((phone) => {
+                    const parts = [phone.phone];
+                    if (phone.extension)
+                        parts.push(`доб. (${phone.extension})`);
+                    if (phone.note_phone) parts.push(`${phone.note_phone}`);
+                    return parts.join(', ');
+                })
+                .join(', ');
+
+        // Формируем строку для заметки (note)
+        const noteStr = data.note[index] || '';
+
+        // Формируем строку для координат
+        const coordStr = `${data.coordinates[index].lat},${data.coordinates[index].lng}`;
+
+        // Собираем промежуточную строку
+        const parts = [noteStr, phonesStr, data.worktime[index]]
+            .filter((part) => part !== '') // Убираем пустые части
+            .join(', '); 
+
+        // Собираем итоговую строку
+        const partsEnd = [branch, parts, coordStr].filter(
+            (part) => part !== ''
+        ); // Убираем пустые части
+
+        return partsEnd.join('; ');
+    });
+}
+
+
+// возвращает массив строк с инфой по адресам доставки из получаемого объекта-ответа с сервера
+export function formatDeliveryData(data) {
+    return data.addresses.map((address, index) => {
+        // Формируем строку для истории (history)
+        const historyStr = data.history[index] || '';
+
+        // Формируем строку для координат
+        const coordStr = data.coordinates[index]
+            ? `${data.coordinates[index].lat},${data.coordinates[index].lng}`
+            : '';
+
+        // Собираем итоговую строку
+        const parts = [address, historyStr, coordStr].filter(
+            (part) => part !== ''
+        ); // Убираем пустые части
+
+        return parts.join('; ');
+    });
+}

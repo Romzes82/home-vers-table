@@ -3,6 +3,7 @@ import localForage from 'localforage';
 import UploadFiles from './components/UploadFiles';
 import DisplayData from './components/DisplayData';
 import './App.css';
+import { formatCompanyData, formatDeliveryData } from './utils/helpersFunctions';
 
 // Вспомогательные функции
 function extractNumbersFromString(stringWithNumbers) {
@@ -30,7 +31,7 @@ const processMoscowItem = async (item) => {
             const data = await response.json();
             // console.log('data')
             // console.log(data);
-            return { ...item, V: data.addresses || [] };
+            return { ...item, V: formatDeliveryData(data) || [] };
         } catch (error) {
             console.error('Ошибка обработки Москвы:', error);
             return { ...item, V: [] };
@@ -60,7 +61,7 @@ const processTKItem = async (item) => {
         return {
             ...item,
             F: result.company || item.F,
-            V: result.branches || [],
+            V: formatCompanyData(result) || [],
         };
     } catch (error) {
         console.error('Ошибка обработки ТК:', error);

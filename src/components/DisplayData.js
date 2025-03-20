@@ -256,7 +256,25 @@ const renderCellContent = (
                                         zIndex: 1000,
                                     }}
                                 >
-                                    {tooltip.text}
+                                    {/*  Вставляем \n перед тел. и временем */}
+                                    {tooltip.text
+                                        .replace(/, тел\./g, ',\nтел.')
+                                        .replace(/; /, ';\n')
+                                        .replace(
+                                            /(с \d{1,2}-\d{2} до \d{1,2}-\d{2}\.?)/g,
+                                            '\n$1'
+                                        )
+                                        .replace(
+                                            /\d{2,}\.\d+,\s*\d{2,}\.\d+/g,
+                                            ''
+                                        )
+                                        .replace(/(\d{8});/g, (match) => {
+                                            // Разбиваем на части: день, месяц, год
+                                            const day = match.slice(0, 2);
+                                            const month = match.slice(2, 4);
+                                            const year = match.slice(4, 8);
+                                            return `${day}/${month}/${year};`; // Возвращаем новый формат
+                                        })}
                                 </div>
                             )}
                     </div>
