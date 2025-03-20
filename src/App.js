@@ -17,26 +17,42 @@ function extractNumbersFromString(stringWithNumbers) {
 }
 
 const processMoscowItem = async (item) => {
-    if (!item.S) return;
-        try {
-            const response = await fetch(
-                `http://localhost:8888/delivery/get-by-inn?inn=${item.S}`
-            );
+    // Если оба поля пустые, выходим из функции
+    if (!item.S && !item.E) return;
+    let url;
+    let param;
 
-            //проверка статуса ответа
-            if (!response.ok) { 
-                return { ...item, V: [] };
-            }
+    // Определяем, какой запрос делать
+    if (item.S) {
+        // Если item.S не пустое, используем его для запроса по ИНН
+        url = 'http://localhost:8888/delivery/get-by-inn';
+        param = `inn=${item.S}`;
+    } else if (item.E) {
+        // Если item.S пустое, но item.E не пустое, используем его для запроса по клиенту
+        url = 'http://localhost:8888/delivery/get-by-client';
+        param = `client=${item.E}`;
+    } else {
+        // Если оба поля пустые, выходим из функции
+        return;
+    }
 
-            const data = await response.json();
-            // console.log('data')
-            // console.log(data);
-            return { ...item, V: formatDeliveryData(data) || [] };
-        } catch (error) {
-            console.error('Ошибка обработки Москвы:', error);
+    try {
+        const response = await fetch(`${url}?${param}`);
+
+        //проверка статуса ответа
+        if (!response.ok) {
             return { ...item, V: [] };
-            // return item;
         }
+
+        const data = await response.json();
+        // console.log('data')
+        // console.log(data);
+        return { ...item, V: formatDeliveryData(data) || [] };
+    } catch (error) {
+        console.error('Ошибка обработки Москвы:', error);
+        return { ...item, V: [] };
+        // return item;
+    }
 };
 
 
