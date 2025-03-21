@@ -36,6 +36,7 @@ const SortableRow = ({
     handleChange_W_or_X,
     tooltip,
     setTooltip,
+    tkList,
 }) => {
     const {
         attributes,
@@ -119,7 +120,8 @@ const SortableRow = ({
                             handleChange_V,
                             handleChange_W_or_X,
                             tooltip,
-                            setTooltip
+                            setTooltip,
+                            tkList
                         )}
                     </td>
                 );
@@ -137,7 +139,8 @@ const renderCellContent = (
     handleChange_V,
     handleChange_W_or_X,
     tooltip,
-    setTooltip
+    setTooltip,
+    tkList,
 ) => {
     switch (header) {
         case 'E':
@@ -190,20 +193,82 @@ const renderCellContent = (
                 </div>
             );
 
+        // case 'F':
+        //     return (
+        //         <input
+        //             defaultValue={row[header]}
+        //             onKeyDown={(e) => {
+        //                 if (e.key === 'Enter') {
+        //                     e.preventDefault();
+        //                     e.target.blur();
+        //                 }
+        //             }}
+        //             onBlur={(e) => handleChange(row.B, header, e.target.value)}
+        //             style={{ width: '10em' }}
+        //         />
+        //     );
         case 'F':
+            // const suggestions = ['тк Транзит Авто', 'тк Антарэс', 'тк ПЭК'];
             return (
-                <input
-                    defaultValue={row[header]}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            e.target.blur();
+                <>
+                    <input
+                        style={{
+                            fontStyle: row.Z?.bid ? 'italic' : 'none',
+                            fontWeight: row.Z?.bid ? 'bold' : 'none',
+                            color: row.Z?.marker ? 'red' : 'none',
+                            width: '10em',
+                        }}
+                        list={`${row.B}_F_suggestions`}
+                        defaultValue={row[header]}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.target.blur();
+                            }
+                        }}
+                        onBlur={(e) =>
+                            handleChange(row.B, header, e.target.value)
                         }
-                    }}
-                    onBlur={(e) => handleChange(row.B, header, e.target.value)}
-                    style={{ width: '10em' }}
-                />
+                        //  style={{ width: '10em' }}
+                    />
+
+                    <datalist id={`${row.B}_F_suggestions`}>
+                        {tkList.map((tk, index) => (
+                            <option key={index} value={tk} />
+                        ))}
+                    </datalist>
+                </>
             );
+        // case 'F':
+        //     return (
+        //         <div className="input-with-icon-container">
+        //             <input
+        //                 list={`${row.B}_F_suggestions`}
+        //                 defaultValue={row[header]}
+        //                 onKeyDown={(e) => {
+        //                     if (e.key === 'Enter') {
+        //                         e.preventDefault();
+
+        //                         e.target.blur();
+        //                     }
+        //                 }}
+        //                 onBlur={(e) =>
+        //                     handleChange(row.B, header, e.target.value)
+        //                 }
+        //                 style={{ width: '10em' }}
+        //             />
+
+        //             {row.Z?.bid && ( // Показываем иконку, если Z.bid = true
+        //                 <span className="phone-icon">📞</span> // Иконка телефона
+        //             )}
+
+        //             <datalist id={`${row.B}_F_suggestions`}>
+        //                 {tkList.map((tk, index) => (
+        //                     <option key={index} value={tk} />
+        //                 ))}
+        //             </datalist>
+        //         </div>
+        //     );
 
         case 'V':
             return (
@@ -357,7 +422,10 @@ const renderCellContent = (
             return (
                 <>
                     <span> {(row[header]?.crossedCellClient).toString()} </span>
-                    <span>{(row[header]?.crossedCellAddress).toString()}</span>
+                    <span>
+                        {' '}
+                        {(row[header]?.crossedCellAddress).toString()}{' '}
+                    </span>
                 </>
             );
 
@@ -375,6 +443,7 @@ export default function DisplayData({
     onOrderChange,
     onCellChange,
     fileHistory,
+    tkList,
 }) {
     const [hiddenColumns, setHiddenColumns] = useState(COLUMN_HIDDEN);
     const [mask, setMask] = useState(COLUMN_ORDER);
@@ -471,7 +540,6 @@ export default function DisplayData({
             }
         });
     }, [isCompact, data]);
-
 
     // Стили для компактного режима
     // const compactStyles = {
@@ -863,6 +931,7 @@ export default function DisplayData({
                                     handleChange_W_or_X={handleChange_W_or_X}
                                     tooltip={tooltip}
                                     setTooltip={setTooltip}
+                                    tkList={tkList}
                                 />
                             ))}
                         </SortableContext>

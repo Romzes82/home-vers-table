@@ -74,10 +74,16 @@ const processTKItem = async (item) => {
             throw new Error(`Ошибка ${response.status} ТК не найдены по массиву номеров ${numbers}`);
         }
         const result = await response.json();
+
         return {
             ...item,
             F: result.company || item.F,
             V: formatCompanyData(result) || [],
+            Z: {
+                ...item.Z,
+                bid: Boolean(result.bid),
+                marker: Boolean(result.marker),
+            },
         };
     } catch (error) {
         console.error('Ошибка обработки ТК:', error);
@@ -85,6 +91,7 @@ const processTKItem = async (item) => {
             ...item,
             V: [],
             F: item.F,
+            Z: item.Z,
         };
     }
 };
@@ -98,6 +105,7 @@ export default function App() {
     });
 
     const [tableOrder, setTableOrder] = useState([]);
+    const [tkList, setTkList] = useState([]);
 
     // Загрузка данных при монтировании
     useEffect(() => {
@@ -112,7 +120,26 @@ export default function App() {
             setTableOrder(savedOrder || []);
         };
 
+        // Загрузка списка ТК с сервера
+
+        const fetchTkList = async () => {
+            try {
+                const response = await fetch(
+                    'http://localhost:8888/tk/get-names'
+                );
+                if (!response.ok) {
+                    throw new Error('Ошибка при загрузке списка ТК');
+                }
+                const data = await response.json();
+                // setTkList(data.map((tk) => tk.name)); // Сохраняем только названия ТК
+                setTkList(data);
+            } catch (error) {
+                console.error('Ошибка при загрузке списка ТК:', error);
+            }
+        };
+
         loadData();
+        fetchTkList(); 
     }, []);
 
     // Сохранение данных
@@ -240,13 +267,13 @@ export default function App() {
 
     return (
         <div>
-
             <DisplayData
                 data={tableData}
                 order={tableOrder}
                 onOrderChange={handleOrderChange}
                 onCellChange={setTableData}
                 fileHistory={fileHistory}
+                tkList={tkList}
             />
             <UploadFiles onUpload={handleUpload} />
         </div>

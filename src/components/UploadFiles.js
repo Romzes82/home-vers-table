@@ -79,6 +79,8 @@ const UploadFiles = ({ onUpload }) => {
                 processed['Z'] = {
                     crossedCellClient: false,
                     crossedCellAddress: false,
+                    bid: false,
+                    marker: false,
                 };
             });
 
@@ -141,6 +143,8 @@ const UploadFiles = ({ onUpload }) => {
                             Z: {
                                 crossedCellClient: false,
                                 crossedCellAddress: false,
+                                bid: false,
+                                marker: false,
                             },
                             // Y: '',
                         }));
