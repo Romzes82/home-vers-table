@@ -37,6 +37,7 @@ const SortableRow = ({
     tooltip,
     setTooltip,
     tkList,
+    onContextMenu, // добавляем обработчик правого клика
 }) => {
     const {
         attributes,
@@ -78,6 +79,7 @@ const SortableRow = ({
             // {...attributes}
             // {...listeners}
             onClick={(e) => handleRowClick(e, row)}
+            onContextMenu={(e) => onContextMenu(e, row)} // Обработчик правого клика
         >
             {filterHeaders.map((header, cellIndex) => {
                 const isDraggableCell = header === 'A';
@@ -444,6 +446,8 @@ export default function DisplayData({
     onCellChange,
     fileHistory,
     tkList,
+    processMoscowItem,
+    processTkItem
 }) {
     const [hiddenColumns, setHiddenColumns] = useState(COLUMN_HIDDEN);
     const [mask, setMask] = useState(COLUMN_ORDER);
@@ -460,6 +464,75 @@ export default function DisplayData({
         x: 0,
         y: 0,
     });
+
+    // Состояние для контекстного меню
+
+    const [contextMenu, setContextMenu] = useState({
+        visible: false,
+        x: 0,
+        y: 0,
+        row: null, // Строка, по которой был сделан правый клик
+    });
+
+    // Обработчик правого клика
+    const handleContextMenu = (e, row) => {
+        e.preventDefault(); // Отключаем стандартное контекстное меню браузера
+        setContextMenu({
+            visible: true,
+            x: e.clientX,
+            y: e.clientY,
+            row, // Сохраняем строку, по которой был сделан клик
+        });
+    };
+
+    // Обработчик выбора пункта меню
+    const handleContextMenuAction = async (action, row) => {
+        try {
+            if (action === 'Определить адрес') {
+                // Получаем значение из столбца F
+                const companyName = row.F?.value || row.F;
+                if (companyName === 'Москва и область') {
+                    // Вызываем обработку для Москвы
+                    const updatedRow = await processMoscowItem(row);
+                    const newData = data.map((item) =>
+                        item.B === row.B ? updatedRow : item
+                    );
+                    onCellChange(newData);
+                } else {
+                    // Вызываем обработку для ТК
+                    // console.log(row);
+                    const updatedRow = await processTkItem(row);
+                    // console.log(updatedRow);
+                    const newData = data.map((item) =>
+                        item.B === row.B ? updatedRow : item
+                    );
+                    onCellChange(newData);
+                }
+            }
+
+            // Закрываем меню и сбрасываем выделение
+            setContextMenu({ ...contextMenu, visible: false });
+        } catch (error) {
+            console.error('Ошибка обработки адреса:', error);
+            alert('Произошла ошибка при обработке адреса');
+        }
+    };    
+    
+    // const handleContextMenuAction = (action, row) => {
+    //     setContextMenu({ ...contextMenu, visible: false }); // Скрываем меню
+    //     console.log(`Выбран пункт: ${action} на строке ${row.B}`); // Показываем alert
+    // };
+
+    // Закрытие контекстного меню при клике вне его
+    useEffect(() => {
+        const handleClickOutside = () => {
+            if (contextMenu.visible) {
+                setContextMenu({ ...contextMenu, visible: false });
+            }
+        };
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, [contextMenu]);
 
     // console.log(data);
     // Эффект для единоразовой сортировки при загрузке
@@ -789,6 +862,75 @@ export default function DisplayData({
 
     return (
         <div className="displayData">
+            {/* Контекстное меню */}
+
+            {contextMenu.visible && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: contextMenu.y,
+                        left: contextMenu.x,
+                        backgroundColor: 'white',
+                        border: '1px solid #ccc',
+                        boxShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)',
+                        zIndex: 1000,
+                    }}
+                >
+                    <div
+                        style={{ padding: '8px 16px', cursor: 'pointer' }}
+                        // onClick={() => {
+                        //     handleContextMenuAction(
+                        //         'Определить адрес',
+                        //         contextMenu.row
+                        //     )
+                        // }
+                        // }
+                        onClick={async () => {
+                            try {
+                                await handleContextMenuAction(
+                                    'Определить адрес',
+                                    contextMenu.row
+                                );
+                                // Дополнительные действия после успешного выполнения
+                            } catch (error) {
+                                console.error('Ошибка:', error);
+                                alert('Произошла ошибка');
+                            } finally {
+                                setContextMenu({
+                                    ...contextMenu,
+                                    visible: false,
+                                });
+                            }
+                        }}
+                        onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = '#e9ecef';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = '#f8f9fa';
+                        }}
+                    >
+                        Определить адрес
+                    </div>
+
+                    <div
+                        style={{ padding: '8px 16px', cursor: 'pointer' }}
+                        // onClick={() =>
+                        //     handleContextMenuAction1(
+                        //         'Удалить строку',
+                        //         contextMenu.row
+                        //     )
+                        // }
+                        onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = '#e9ecef';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = '#f8f9fa';
+                        }}
+                    >
+                        Удалить строку
+                    </div>
+                </div>
+            )}
             <div
                 style={{
                     position: 'sticky',
@@ -932,6 +1074,7 @@ export default function DisplayData({
                                     tooltip={tooltip}
                                     setTooltip={setTooltip}
                                     tkList={tkList}
+                                    onContextMenu={handleContextMenu} // Передаем обработчик
                                 />
                             ))}
                         </SortableContext>

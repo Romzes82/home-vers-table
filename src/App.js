@@ -56,7 +56,8 @@ const processMoscowItem = async (item) => {
 };
 
 
-const processTKItem = async (item) => {
+const processTkItem = async (item) => {
+
     try {
         // const numbers = extractNumbersFromString(item.L || item.M);
         const numbers = extractNumbersFromString(item.L);
@@ -72,6 +73,68 @@ const processTKItem = async (item) => {
         );
         if (!response.ok) {
             throw new Error(`Ошибка ${response.status} ТК не найдены по массиву номеров ${numbers}`);
+        }
+        const result = await response.json();
+
+        return {
+            ...item,
+            F: result.company || item.F,
+            V: formatCompanyData(result) || [],
+            Z: {
+                ...item.Z,
+                bid: Boolean(result.bid),
+                marker: Boolean(result.marker),
+            },
+        };
+    } catch (error) {
+        console.error('Ошибка обработки ТК:', error);
+        return {
+            ...item,
+            V: [],
+            F: item.F,
+            Z: item.Z,
+        };
+    }
+};
+
+const processTkItemFromMenu = async (item) => {
+    // Если оба поля пустые, выходим из функции
+    if (!item.F && !item.Y) return;
+    let url;
+    let param;
+
+    // Определяем, какой запрос делать
+    if (item.F) {
+        // Если item.F не пустое, используем его для запроса по названию ТК
+        // Если item.F входит в массив tkList НО!!! он вне области видимости, используем его для запроса по названию ТК
+        url = 'http://localhost:8888/tk/get-by-name';
+        param = `name=${item.F}`;
+    } else if (item.E) {
+        // Если item.F пустое, но item.E не пустое, используем его для запроса по клиенту
+        url = 'http://localhost:8888/delivery/get-by-client';
+        param = `client=${item.E}`;
+    } else {
+        // Если оба поля пустые, выходим из функции
+        return;
+    }
+
+    try {
+        // const numbers = extractNumbersFromString(item.L || item.M);
+        const numbers = extractNumbersFromString(item.L);
+
+        if (numbers.length === 0) return { ...item, V: [] };
+        const response = await fetch(
+            'http://localhost:8888/tk/get-by-numbers',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ numbers }),
+            }
+        );
+        if (!response.ok) {
+            throw new Error(
+                `Ошибка ${response.status} ТК не найдены по массиву номеров ${numbers}`
+            );
         }
         const result = await response.json();
 
@@ -164,7 +227,7 @@ export default function App() {
                 }
 
                 if (item.F.startsWith('тк')) {
-                    return await processTKItem(item);
+                    return await processTkItem(item);
                 }
 
                 return item;
@@ -274,6 +337,8 @@ export default function App() {
                 onCellChange={setTableData}
                 fileHistory={fileHistory}
                 tkList={tkList}
+                processMoscowItem={processMoscowItem}
+                processTkItem={processTkItem}
             />
             <UploadFiles onUpload={handleUpload} />
         </div>
