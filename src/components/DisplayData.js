@@ -222,6 +222,8 @@ const renderCellContent = (
                         }}
                         list={`${row.B}_F_suggestions`}
                         defaultValue={row[header]}
+                        // value={row[header]}
+
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 e.preventDefault();
@@ -447,7 +449,8 @@ export default function DisplayData({
     fileHistory,
     tkList,
     processMoscowItem,
-    processTkItem
+    processTkItem,
+    processTkItemByName
 }) {
     const [hiddenColumns, setHiddenColumns] = useState(COLUMN_HIDDEN);
     const [mask, setMask] = useState(COLUMN_ORDER);
@@ -490,24 +493,29 @@ export default function DisplayData({
         try {
             if (action === 'Определить адрес') {
                 // Получаем значение из столбца F
+                // console.log(row)
+                // console.log(row.F)
+
                 const companyName = row.F?.value || row.F;
-                if (companyName === 'Москва и область') {
+                // const companyName = row.F;
+                let updatedRow;
+
+                if (companyName === 'Москва и область' || companyName === 'Zabiraem' || companyName === 'Onvozim') {
                     // Вызываем обработку для Москвы
-                    const updatedRow = await processMoscowItem(row);
-                    const newData = data.map((item) =>
-                        item.B === row.B ? updatedRow : item
-                    );
-                    onCellChange(newData);
-                } else {
+                    updatedRow = await processMoscowItem(row);
+                } else if (tkList.includes(companyName)) {
                     // Вызываем обработку для ТК
-                    // console.log(row);
-                    const updatedRow = await processTkItem(row);
-                    // console.log(updatedRow);
-                    const newData = data.map((item) =>
-                        item.B === row.B ? updatedRow : item
-                    );
-                    onCellChange(newData);
+                    // если назвнание входит в массив тк с бд, то ищем по имени. Все остальное - по номерам
+                    // Вызываем обработку для ТК по именам
+                    updatedRow = await processTkItemByName(row);
+                } else {
+                    // Вызываем обработку для ТК по номерам
+                    updatedRow = await processTkItem(row, "Y");
                 }
+            const newData = data.map((item) =>
+                item.B === row.B ? updatedRow : item
+            );
+            onCellChange(newData);
             }
 
             // Закрываем меню и сбрасываем выделение
