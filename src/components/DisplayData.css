@@ -139,4 +139,6 @@ tr {
   word-break: break-word; /* Оптимальный перенос слов */
   font-size: 0.9em;
   pointer-events: none;
+  /* overflow-y: auto;
+  max-height: 200px; */
 }

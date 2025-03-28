@@ -221,8 +221,13 @@ const renderCellContent = (
                             width: '10em',
                         }}
                         list={`${row.B}_F_suggestions`}
-                        defaultValue={row[header]}
-                        // value={row[header]}
+                        // defaultValue={row[header]}
+                        // key={`${row.B}_${row.F}`}
+                        value={row[header] || ''}
+                        onChange={(e) => {
+                            handleChange(row.B, header, e.target.value);
+                        }}
+                        // defaultValue={row[header]}
 
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
@@ -291,7 +296,8 @@ const renderCellContent = (
                                 visible: true,
                                 text: input.value,
                                 x: rect.left + window.scrollX,
-                                y: rect.top + window.scrollY - 35,
+                                // y: rect.top + window.scrollY - 35,
+                                y: rect.top  - 35,
                             });
                         }}
                         onMouseLeave={() =>
@@ -512,11 +518,26 @@ export default function DisplayData({
                     // Вызываем обработку для ТК по номерам
                     updatedRow = await processTkItem(row, "Y");
                 }
-            const newData = data.map((item) =>
+
+              
+                const newData = data.map((item) =>
                 item.B === row.B ? updatedRow : item
             );
             onCellChange(newData);
             }
+
+                        if (action === 'Удалить адрес') {
+                            console.log(row.V);
+                            // row.V = [];
+                            // updatedRow = row;
+                            const newData = data.map((item) =>
+                                item.B === row.B
+                                    ? {...row, V: []}
+                                    : item
+                            );
+                            onCellChange(newData);
+                            // window.location.reload();
+                        }
 
             // Закрываем меню и сбрасываем выделение
             setContextMenu({ ...contextMenu, visible: false });
@@ -928,6 +949,23 @@ export default function DisplayData({
                         //         contextMenu.row
                         //     )
                         // }
+                        onClick={async () => {
+                            try {
+                                await handleContextMenuAction(
+                                    'Удалить адрес',
+                                    contextMenu.row
+                                );
+                                // Дополнительные действия после успешного выполнения
+                            } catch (error) {
+                                console.error('Ошибка:', error);
+                                alert('Произошла ошибка');
+                            } finally {
+                                setContextMenu({
+                                    ...contextMenu,
+                                    visible: false,
+                                });
+                            }
+                        }}
                         onMouseEnter={(e) => {
                             e.target.style.backgroundColor = '#e9ecef';
                         }}
@@ -935,7 +973,7 @@ export default function DisplayData({
                             e.target.style.backgroundColor = '#f8f9fa';
                         }}
                     >
-                        Удалить строку
+                        Удалить адрес
                     </div>
                 </div>
             )}
