@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import localForage from 'localforage';
 import UploadFiles from './components/UploadFiles';
 import DisplayData from './components/DisplayData';
@@ -188,6 +188,7 @@ export default function App() {
 
     const [tableOrder, setTableOrder] = useState([]);
     const [tkList, setTkList] = useState([]);
+    // const memoizedTkList = useMemo(() => tkList, [tkList])
 
     // Загрузка данных при монтировании
     useEffect(() => {
@@ -203,7 +204,6 @@ export default function App() {
         };
 
         // Загрузка списка ТК с сервера
-
         const fetchTkList = async () => {
             try {
                 const response = await fetch(
@@ -217,6 +217,7 @@ export default function App() {
                 setTkList(data);
             } catch (error) {
                 console.error('Ошибка при загрузке списка ТК:', error);
+                setTkList([]);
             }
         };
 
@@ -356,6 +357,7 @@ export default function App() {
                 onCellChange={setTableData}
                 fileHistory={fileHistory}
                 tkList={tkList}
+                // tkList={memoizedTkList}
                 processMoscowItem={processMoscowItem}
                 processTkItem={processTkItem}
                 processTkItemByName={processTkItemByName}

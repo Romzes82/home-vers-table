@@ -220,9 +220,11 @@ const renderCellContent = (
                             color: row.Z?.marker ? 'red' : 'none',
                             width: '10em',
                         }}
-                        list={`${row.B}_F_suggestions`}
+                        // list={`${row.B}_F_suggestions`}
+                        list="F_suggestions"
                         // defaultValue={row[header]}
                         // key={`${row.B}_${row.F}`}
+                        key={`${row.B}_${row.Z?.bid}_${row.Z?.marker}`} // это для ререндера bid b marker в ячейке
                         value={row[header] || ''}
                         onChange={(e) => {
                             handleChange(row.B, header, e.target.value);
@@ -241,11 +243,11 @@ const renderCellContent = (
                         //  style={{ width: '10em' }}
                     />
 
-                    <datalist id={`${row.B}_F_suggestions`}>
+                    {/* <datalist id={`${row.B}_F_suggestions`}>
                         {tkList.map((tk, index) => (
                             <option key={index} value={tk} />
                         ))}
-                    </datalist>
+                    </datalist> */}
                 </>
             );
         // case 'F':
@@ -287,6 +289,7 @@ const renderCellContent = (
                             position: 'relative',
                             display: 'inline-block',
                         }}
+                        key={`${row.B}_${row.V}`}
                         onMouseEnter={(e) => {
                             const input =
                                 e.currentTarget.querySelector('input');
@@ -297,7 +300,7 @@ const renderCellContent = (
                                 text: input.value,
                                 x: rect.left + window.scrollX,
                                 // y: rect.top + window.scrollY - 35,
-                                y: rect.top  - 35,
+                                y: rect.top - 35,
                             });
                         }}
                         onMouseLeave={() =>
@@ -332,24 +335,26 @@ const renderCellContent = (
                                     }}
                                 >
                                     {/*  Вставляем \n перед тел. и временем */}
-                                    {tooltip.text
-                                        .replace(/, тел\./g, ',\nтел.')
-                                        .replace(/; /, ';\n')
-                                        .replace(
-                                            /(с \d{1,2}-\d{2} до \d{1,2}-\d{2}\.?)/g,
-                                            '\n$1'
-                                        )
-                                        .replace(
-                                            /\d{2,}\.\d+,\s*\d{2,}\.\d+/g,
-                                            ''
-                                        )
-                                        .replace(/(\d{8});/g, (match) => {
-                                            // Разбиваем на части: день, месяц, год
-                                            const day = match.slice(0, 2);
-                                            const month = match.slice(2, 4);
-                                            const year = match.slice(4, 8);
-                                            return `${day}/${month}/${year};`; // Возвращаем новый формат
-                                        })}
+                                    {
+                                        tooltip.text
+                                            .replace(/, тел\./g, ',\nтел.')
+                                            .replace(/; /, ';\n')
+                                            .replace(
+                                                /(с \d{1,2}-\d{2} до \d{1,2}-\d{2}\.?)/g,
+                                                '\n$1'
+                                            )
+                                            .replace(
+                                                /\d{2,}\.\d+,\s*\d{2,}\.\d+/g,
+                                                ''
+                                            )
+                                        // .replace(/(\d{8});/g, (match) => {
+                                        //     // Разбиваем на части: день, месяц, год
+                                        //     const day = match.slice(0, 2);
+                                        //     const month = match.slice(2, 4);
+                                        //     const year = match.slice(4, 8);
+                                        //     return `${day}/${month}/${year};`; // Возвращаем новый формат
+                                        // })
+                                    }
                                 </div>
                             )}
                     </div>
@@ -891,8 +896,15 @@ export default function DisplayData({
 
     return (
         <div className="displayData">
-            {/* Контекстное меню */}
 
+            {/* Добовляем общий datalist здесь */}
+            <datalist id="F_suggestions">
+                {tkList.map((tk, index) => (
+                    <option key={index} value={tk} />
+                ))}
+            </datalist>
+
+            {/* Контекстное меню */}
             {contextMenu.visible && (
                 <div
                     style={{
