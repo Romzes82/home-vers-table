@@ -19,6 +19,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { getGroupStatus } from '../utils/helpersFunctions';
 // import localForage from 'localforage';
 
 // Компонент для сортируемой строки
@@ -38,6 +39,8 @@ const SortableRow = ({
     setTooltip,
     tkList,
     onContextMenu, // добавляем обработчик правого клика
+    data,
+    order
 }) => {
     const {
         attributes,
@@ -123,7 +126,9 @@ const SortableRow = ({
                             handleChange_W_or_X,
                             tooltip,
                             setTooltip,
-                            tkList
+                            tkList,
+                            data,
+                            order
                         )}
                     </td>
                 );
@@ -143,6 +148,8 @@ const renderCellContent = (
     tooltip,
     setTooltip,
     tkList,
+    data,
+    order
 ) => {
     switch (header) {
         case 'E':
@@ -210,11 +217,27 @@ const renderCellContent = (
         //         />
         //     );
         case 'F':
+            const currentIndex = data.findIndex(r => r.B === row.B);
+            const { isGrouped, hasAddress, isDuplicationTk } = getGroupStatus(
+                data,
+                order,
+                row,
+                currentIndex
+            );
+            // console.log(currentIndex, isGrouped, hasAddress);
+            // console.log(data);
             // const suggestions = ['тк Транзит Авто', 'тк Антарэс', 'тк ПЭК'];
             return (
                 <>
                     <input
                         style={{
+                            border: isDuplicationTk ? '4px solid red' : 'none',
+                            // color: !isGrouped ? 'green' : 'none',
+
+                            backgroundColor: !hasAddress
+                                ? '#aff2fd'
+                                : 'inherit',
+
                             fontStyle: row.Z?.bid ? 'italic' : 'none',
                             fontWeight: row.Z?.bid ? 'bold' : 'none',
                             color: row.Z?.marker ? 'red' : 'none',
@@ -224,7 +247,7 @@ const renderCellContent = (
                         list="F_suggestions"
                         // defaultValue={row[header]}
                         // key={`${row.B}_${row.F}`}
-                        key={`${row.B}_${row.Z?.bid}_${row.Z?.marker}`} // это для ререндера bid b marker в ячейке
+                        key={`${row.B}_${row.Z?.bid}_${row.Z?.marker}`} // это для ререндера bid и marker в ячейке
                         value={row[header] || ''}
                         onChange={(e) => {
                             handleChange(row.B, header, e.target.value);
@@ -532,7 +555,7 @@ export default function DisplayData({
             }
 
                         if (action === 'Удалить адрес') {
-                            console.log(row.V);
+                            // console.log(row.V);
                             // row.V = [];
                             // updatedRow = row;
                             const newData = data.map((item) =>
@@ -582,6 +605,14 @@ export default function DisplayData({
                 if (compareF !== 0) return compareF;
                 return compareValues(a.S, b.S);
             });
+            // // Выполняем сортировку с Memo
+            // const sortedData = useMemo(() => {
+            //   [...data].sort((a, b) => {
+            //       const compareF = compareValues(a.F, b.F);
+            //       if (compareF !== 0) return compareF;
+            //       return compareValues(a.S, b.S);
+            //   });  
+            // }, [data, order])
             // Создаем новый порядок на основе отсортированных данных
             const newOrder = sortedData.map((row) => row.B);
             onOrderChange(newOrder);
@@ -1133,6 +1164,8 @@ export default function DisplayData({
                                     setTooltip={setTooltip}
                                     tkList={tkList}
                                     onContextMenu={handleContextMenu} // Передаем обработчик
+                                    data={data}
+                                    order={order}
                                 />
                             ))}
                         </SortableContext>
