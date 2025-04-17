@@ -217,12 +217,12 @@ const renderCellContent = (
         //         />
         //     );
         case 'F':
-            const currentIndex = data.findIndex(r => r.B === row.B);
-            const { isGrouped, hasAddress, isDuplicationTk } = getGroupStatus(
+            // const currentIndex = data.findIndex(r => r.B === row.B);
+            const { isColored } = getGroupStatus(
                 data,
                 order,
                 row,
-                currentIndex
+                // currentIndex
             );
             // console.log(currentIndex, isGrouped, hasAddress);
             // console.log(data);
@@ -231,12 +231,10 @@ const renderCellContent = (
                 <>
                     <input
                         style={{
-                            border: isDuplicationTk ? '4px solid red' : 'none',
+                            border: isColored ? '4px solid red' : 'none',
                             // color: !isGrouped ? 'green' : 'none',
 
-                            backgroundColor: !hasAddress
-                                ? '#aff2fd'
-                                : 'inherit',
+                            // backgroundColor: isColored ? '#aff2fd' : 'inherit',
 
                             fontStyle: row.Z?.bid ? 'italic' : 'none',
                             fontWeight: row.Z?.bid ? 'bold' : 'none',
@@ -312,7 +310,7 @@ const renderCellContent = (
                             position: 'relative',
                             display: 'inline-block',
                         }}
-                        key={`${row.B}_${row.V}`}
+                        key={`${row.B}_${row.V}_${row.F}`}
                         onMouseEnter={(e) => {
                             const input =
                                 e.currentTarget.querySelector('input');
@@ -534,7 +532,11 @@ export default function DisplayData({
                 // const companyName = row.F;
                 let updatedRow;
 
-                if (companyName === 'Москва и область' || companyName === 'Zabiraem' || companyName === 'Onvozim') {
+                if (
+                    companyName === 'Москва и область' ||
+                    companyName === 'Zabiraem' ||
+                    companyName === 'Onvozim'
+                ) {
                     // Вызываем обработку для Москвы
                     updatedRow = await processMoscowItem(row);
                 } else if (tkList.includes(companyName)) {
@@ -544,28 +546,25 @@ export default function DisplayData({
                     updatedRow = await processTkItemByName(row);
                 } else {
                     // Вызываем обработку для ТК по номерам
-                    updatedRow = await processTkItem(row, "Y");
+                    updatedRow = await processTkItem(row, 'Y');
                 }
 
-              
                 const newData = data.map((item) =>
-                item.B === row.B ? updatedRow : item
-            );
-            onCellChange(newData);
+                    item.B === row.B ? updatedRow : item
+                );
+                onCellChange(newData);
             }
 
-                        if (action === 'Удалить адрес') {
-                            // console.log(row.V);
-                            // row.V = [];
-                            // updatedRow = row;
-                            const newData = data.map((item) =>
-                                item.B === row.B
-                                    ? {...row, V: []}
-                                    : item
-                            );
-                            onCellChange(newData);
-                            // window.location.reload();
-                        }
+            if (action === 'Удалить адрес') {
+                // console.log(row.V);
+                // row.V = [];
+                // updatedRow = row;
+                const newData = data.map((item) =>
+                    item.B === row.B ? { ...row, V: [] } : item
+                );
+                onCellChange(newData);
+                // window.location.reload();
+            }
 
             // Закрываем меню и сбрасываем выделение
             setContextMenu({ ...contextMenu, visible: false });
@@ -573,8 +572,8 @@ export default function DisplayData({
             console.error('Ошибка обработки адреса:', error);
             alert('Произошла ошибка при обработке адреса');
         }
-    };    
-    
+    };
+
     // const handleContextMenuAction = (action, row) => {
     //     setContextMenu({ ...contextMenu, visible: false }); // Скрываем меню
     //     console.log(`Выбран пункт: ${action} на строке ${row.B}`); // Показываем alert
@@ -611,7 +610,7 @@ export default function DisplayData({
             //       const compareF = compareValues(a.F, b.F);
             //       if (compareF !== 0) return compareF;
             //       return compareValues(a.S, b.S);
-            //   });  
+            //   });
             // }, [data, order])
             // Создаем новый порядок на основе отсортированных данных
             const newOrder = sortedData.map((row) => row.B);
@@ -640,13 +639,43 @@ export default function DisplayData({
         onOrderChange(newOrder);
     };
 
-    // Сортированные данные согласно порядку
-
+    // Сортированные данные согласно порядку + нумерование поля A
     const sortedData = useMemo(() => {
         const orderMap = new Map(order.map((id, index) => [id, index]));
 
-        return [...data].sort((a, b) => orderMap.get(a.B) - orderMap.get(b.B));
+        const sorted = [...data].sort(
+            (a, b) => orderMap.get(a.B) - orderMap.get(b.B)
+        );
+
+        let currentNumber = 0;
+        // let prevAddress = null;
+
+        return sorted.map((row) => {
+            // const hasAddress = row.V && row.V.length > 0;
+            const hasAddress = row.V[0];
+            // const currentAddress = hasAddress ? row.V[0] : null;
+
+            // if (hasAddress && currentAddress !== prevAddress) {
+            if (hasAddress) {
+                currentNumber += 1;
+                // prevAddress = currentAddress;
+            }
+
+            return {
+                ...row,
+                A: currentNumber,
+            };
+        });
     }, [data, order]);
+
+    // console.log(sortedData);
+
+    // Сортированные данные согласно порядку
+    // const sortedData = useMemo(() => {
+    //     const orderMap = new Map(order.map((id, index) => [id, index]));
+
+    //     return [...data].sort((a, b) => orderMap.get(a.B) - orderMap.get(b.B));
+    // }, [data, order]);
 
     // Остальной код компонента остается без изменений
 
@@ -927,7 +956,6 @@ export default function DisplayData({
 
     return (
         <div className="displayData">
-
             {/* Добовляем общий datalist здесь */}
             <datalist id="F_suggestions">
                 {tkList.map((tk, index) => (

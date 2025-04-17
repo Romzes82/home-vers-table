@@ -81,7 +81,6 @@ const UploadFiles = ({ onUpload }) => {
                     crossedCellAddress: false,
                     bid: false,
                     marker: false,
-                    borderTop: false,
                 };
             });
 
@@ -146,7 +145,6 @@ const UploadFiles = ({ onUpload }) => {
                                 crossedCellAddress: false,
                                 bid: false,
                                 marker: false,
-                                borderTop: false,
                             },
                             // Y: '',
                         }));

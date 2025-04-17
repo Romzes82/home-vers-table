@@ -7,13 +7,23 @@ import { formatCompanyData, formatDeliveryData } from './utils/helpersFunctions'
 
 // Вспомогательные функции
 function extractNumbersFromString(stringWithNumbers) {
-    const str = stringWithNumbers.match(/(?:\+|\d)[\d\-\(\) ]{7,}\d/g);
+    const str = stringWithNumbers.match(/(?:\+|\d)[\d\-\(\) ]{5,}\d/g); // минимальная длина 1(начало) + 5 + 1 (конец) = 7
     // const digits = str[0].replace(/\D/g, '');
+    //   console.log(str);
     if (!str) return [];
     const res = [];
-    str.forEach((num) => res.push(num.replace(/\D/g, '')));
+    //     str.forEach((num) => res.push(num.replace(/\D/g, '')));
+    for (const num of str) {
+        let digits = num.replace(/\D/g, '');
+        if (digits.length > 6) {
+            if (digits.length > 10) {
+                digits = digits.slice(-10); // Оставляем последние 10 цифр
+            }
+            res.push(digits);
+        }
+    }
     return res;
-    // console.log(res);
+    //     console.log(res);
 }
 
 // const processMoscowItem = async (item) => {
@@ -271,6 +281,7 @@ export default function App() {
                     .join(', ');
 
                 alert(`Удалены счета: ${removedInvoices}`);
+                console.log(`Удалены счета: ${removedInvoices}`);
             }
 
             // Подготовка базовых данных

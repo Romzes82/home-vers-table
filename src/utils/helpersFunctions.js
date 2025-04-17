@@ -205,70 +205,212 @@ export function formatDeliveryData(data) {
 //     };
 // };
 
-export const getGroupStatus = (data, order, currentRow) => {
-    console.log(currentRow.F);
-    if (currentRow.F === 'Москва и область')     return {
-        isGrouped: false,
-        hasAddress: true,
-        isDuplicationTk: false,
-    };
+// создаем хелпер для поиска отсутствующего адреса тк в F и определения дублирование в тк в F
+// export const getGroupStatus = (data, order, currentRow) => {
+//     // console.log(currentRow.F);
+//     if (currentRow.F === 'Москва и область')     return {
+//         isGrouped: false,
+//         hasAddress: true,
+//         isDuplicationTk: false,
+//     };
 
+//     const currentF = currentRow.F?.value || currentRow.F;
+
+//     if (!currentF)
+//         return { isGrouped: true, hasAddress: false, isDuplicationTk: false };
+
+//     // Находим все строки с текущей ТК
+//     const allTkRows = order
+//         .map((rowId) => data.find((r) => r.B === rowId))
+//         .filter((row) => (row?.F?.value || row?.F) === currentF);
+
+//     // Группируем по наличию border-top в стиле строки
+//     let groups = [];
+//     let currentGroup = [];
+
+//     allTkRows.forEach((row, index) => {
+//         const hasBorder = row.V?.length > 0; // Проверяем наличие адреса в V, т.е. по сути подчеркивание сверху
+
+//         if (index === 0 || hasBorder) {
+//             if (currentGroup.length > 0) groups.push(currentGroup);
+
+//             currentGroup = [row];
+//         } else {
+//             currentGroup.push(row);
+//         }
+//     });
+
+//     if (currentGroup.length > 0) groups.push(currentGroup);
+
+//     // Определяем принадлежность текущей строки к группе
+//     const currentGroupIndex = groups.findIndex((group) =>
+//         group.some((r) => r.B === currentRow.B)
+//     );
+
+//     // Проверяем условия
+//     return {
+//         isGrouped:
+//             currentGroupIndex === 0 ||
+//             groups[currentGroupIndex][0].V?.length > 0,
+
+//         hasAddress: allTkRows.some((r) => r.V?.length > 0),
+
+//         isDuplicationTk: groups.length > 1,
+//     };
+// };
+
+
+// export const getGroupStatus = (data, order, currentRow) => {
+//     const currentF = currentRow.F?.value || currentRow.F;
+//     if (currentF === 'Москва и область')
+//         return {
+//             isGrouped: false,
+//             hasAddress: true,
+//             isDuplicationTk: false,
+//         };
+
+//     // if (!currentF)
+//     //     return { isGrouped: false, hasAddress: false, isDuplicationTk: false };
+
+//     // 1. Собираем все строки текущей ТК в порядке отображения
+//     const allTkRows = order
+//         .map((rowId) => data.find((r) => r.B === rowId))
+//         .filter((row) => (row?.F?.value || row?.F) === currentF);
+
+//     console.log(allTkRows);
+//     // 2. Разбиваем на группы: каждая группа начинается с V[0] !== ""
+//     let groups = [];
+//     let currentGroup = [];
+//     let groupHasAddress = false;
+
+//     allTkRows.forEach((row) => {
+//         const hasAddress = row.V?.[0]?.trim() !== '';
+//         if (hasAddress) {
+//             if (currentGroup.length > 0)
+//                 groups.push({
+//                     hasAddress: groupHasAddress,
+//                     rows: currentGroup,
+//                 });
+
+//             currentGroup = [row];
+
+//             groupHasAddress = hasAddress;
+//         } else {
+//             currentGroup.push(row);
+//         }
+//     });
+
+//     if (currentGroup.length > 0)
+//         groups.push({ hasAddress: groupHasAddress, rows: currentGroup });
+
+//     // 3. Проверяем условия для текущей строки
+//     const currentGroupInfo = groups.find((g) =>
+//         g.rows.some((r) => r.B === currentRow.B)
+//     );
+
+//     // 4. Определяем hasAddress
+//     const hasAddress = currentGroupInfo?.hasAddress || false;
+
+//     // 5. Проверяем дублирование
+//     const isDuplicationTk =
+//         groups.length > 1 ||
+//         (groups[0] &&
+//             !groups[0].hasAddress &&
+//             allTkRows.some((r) => r.V?.[0]?.trim() !== ''));
+
+//     // 6. Определяем isGrouped (текущая строка - начало группы)
+//     const isGrouped = currentGroupInfo?.rows[0]?.B === currentRow.B;
+
+//     return {
+//         isGrouped,
+//         hasAddress,
+//         isDuplicationTk,
+//     };
+// };
+
+export const getGroupStatus = (data, order, currentRow) => {
     const currentF = currentRow.F?.value || currentRow.F;
 
-    if (!currentF)
-        return { isGrouped: true, hasAddress: false, isDuplicationTk: false };
+    if (currentF === 'Москва и область' || currentF === 'Zabiraem')
+        return {
+            isGrouped: false,
+            hasAddress: true,
+            isDuplicationTk: false,
+        };
 
-    // Находим все строки с текущей ТК
+    if (!currentF) return { isColored: false };
 
-    const allTkRows = order
+    // 1. Собираем все вхождения текущей ТК в порядке отображения
+
+    const allTkEntries = order
 
         .map((rowId) => data.find((r) => r.B === rowId))
 
         .filter((row) => (row?.F?.value || row?.F) === currentF);
 
-    // Группируем по наличию border-top в стиле строки
+    // 2. Проверка на повторения не подряд
 
-    let groups = [];
+    let hasNonConsecutive = false;
 
-    let currentGroup = [];
+    const indices = allTkEntries.map((e) => order.indexOf(e.B));
 
-    allTkRows.forEach((row, index) => {
-        const hasBorder = row.V?.length > 0; // Проверяем флаг в Z
+    for (let i = 1; i < indices.length; i++) {
+        if (indices[i] !== indices[i - 1] + 1) {
+            hasNonConsecutive = true;
 
-        if (index === 0 || hasBorder) {
-            if (currentGroup.length > 0) groups.push(currentGroup);
-
-            currentGroup = [row];
-        } else {
-            currentGroup.push(row);
+            break;
         }
+    }
+
+    // 3. Проверка правил для адресов
+
+    let hasAddressViolation = false;
+
+    let firstEntryWithAddress = -1;
+
+    allTkEntries.forEach((entry, index) => {
+        // const hasAddress = entry.V?.[0]?.trim() !== '';
+        const hasAddress = entry.V?.[0]?.length > 0;
+
+
+        if (hasAddress) {
+            if (firstEntryWithAddress === -1) {
+                firstEntryWithAddress = index;
+            } else {
+                // Нашли вторую запись с адресом
+
+                hasAddressViolation = true;
+            }
+        }
+
+        // Если не первая запись, но есть адрес - нарушение
+
+        if (index > 0 && hasAddress) hasAddressViolation = true;
     });
 
-    if (currentGroup.length > 0) groups.push(currentGroup);
+    // 4. Проверка случая, когда первая запись без адреса
 
-    // Определяем принадлежность текущей строки к группе
+    if (allTkEntries.length > 0 && firstEntryWithAddress === -1) {
+        hasAddressViolation = true;
+    }
 
-    const currentGroupIndex = groups.findIndex((group) =>
-        group.some((r) => r.B === currentRow.B)
-    );
+    // 5. Общая проверка
 
-    // Проверяем условия
+    const isColored = hasNonConsecutive || hasAddressViolation;
 
-    return {
-        isGrouped:
-            currentGroupIndex === 0 ||
-            groups[currentGroupIndex][0].V?.length > 0,
-
-        hasAddress: allTkRows.some((r) => r.V?.length > 0),
-
-        isDuplicationTk: groups.length > 1,
-    };
+    return { isColored };
 };
-
 
 // создаем хелпер для ?поиска отсутствующего адреса? тк в F и определения дублирование в тк в F
 // export const getGroupStatus = (data, order, currentRow, originalIndex) => {
 //     const currentF = currentRow.F?.value || currentRow.F;
+
+//     if (currentF === 'Москва и область')
+//         return {
+//             isGrouped: false,
+//             hasAddress: true,
+//             isDuplicationTk: false,
+//         };
 
 //     if (!currentF)
 //         return { isGrouped: true, hasAddress: false, isDuplicationTk: false };
@@ -305,18 +447,13 @@ export const getGroupStatus = (data, order, currentRow) => {
 
 //     // Определяем дублирование
 //     const isDuplicationTk =
-//         allTkIndices.some((index) => index < groupStart || index > groupEnd)  &&
+//         allTkIndices.some((index) => index < groupStart || index > groupEnd) &&
 //         allTkIndices.length > 1;
 
 //     // Проверка верхней границы и адресов
 //     const firstInGroup = data.find((r) => r.B === order[groupStart]);
-//     // const isGrouped = firstInGroup?.V?.[0]?.includes('border-top');
-//     const isGrouped = firstInGroup?.V?.[0] !== "";
+//     const isGrouped = firstInGroup?.V?.[0] !== '';
 
-//     // ДОБАВИТЬ в Z.borderTop
-
-//     console.log(firstInGroup?.V?.[0]);
-//     console.log(isGrouped);
 //     const hasAddress = order.slice(groupStart, groupEnd + 1).some((rowId) => {
 //         const row = data.find((r) => r.B === rowId);
 //         return row.V?.length > 0;
@@ -358,7 +495,9 @@ export const getGroupStatus = (data, order, currentRow) => {
 
 //     // Проверяем границу у первого элемента группы
 //     const firstInGroup = data.find((r) => r.B === order[groupStart]);
-//     const isGrouped = firstInGroup?.V?.[0]?.includes('border-top');
+//     // const isGrouped = firstInGroup?.V?.[0]?.includes('border-top');
+//     const isGrouped = firstInGroup?.V?.[0] === "";
+
 
 //     // Проверяем адреса во всей группе
 //     const hasAddress = order
