@@ -19,8 +19,158 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { getGroupStatus } from '../utils/helpersFunctions';
+import { customRound, getGroupStatus } from '../utils/helpersFunctions';
+import ExcelExporter from './ExcelExporter';
+import SendDeliveryButton from './SendDeliveryButton';
 // import localForage from 'localforage';
+
+// //// Функция преобразования данных
+const transformDataToTruckMapFormat = (forMapData) => {
+    const groupedData = {};
+
+    // Сначала определяем клиентов (по ИНН), у которых есть хотя бы одна паллета
+
+    const clientsWithPallets = new Set();
+
+    forMapData.forEach((item) => {
+        const xValue = Number(item.X?.value) || 0;
+
+        if (xValue > 0) {
+            clientsWithPallets.add(item.S); // Добавляем ИНН клиента
+        }
+    });
+
+    // Группируем данные по ID (поле A)
+
+    forMapData.forEach((item) => {
+        const id = item.A;
+
+        if (!groupedData[id]) {
+            groupedData[id] = {
+                items: [],
+                sumJ: 0,
+                sumK: 0,
+                sumX: 0,
+                sumVolumeInPallet: 0,
+                inn: item.S, // Сохраняем ИНН для группы
+            };
+        }
+
+        groupedData[id].items.push(item);
+        groupedData[id].sumJ += Number(item.J) || 0;
+        groupedData[id].sumK += Number(item.K) || 0;
+
+        const xValue = Number(item.X?.value) || 0;
+        groupedData[id].sumX += xValue;
+
+        // Если у клиента есть хотя бы одна паллета в любом из заказов - суммируем весь объем
+        if (clientsWithPallets.has(item.S)) {
+            groupedData[id].sumVolumeInPallet += Number(item.K) || 0;
+        }
+    });
+
+    // Преобразуем в конечный формат
+    return Object.values(groupedData).map((group) => {
+        const firstItem = group.items[0];
+        const addressItem = firstItem.V?.[0] || '';
+
+        // Извлекаем координаты (последние 2 значения после ;)
+        let latitude = '';
+        let longitude = '';
+        if (addressItem.includes(';')) {
+            const parts = addressItem.split(';');
+            const coords = parts[parts.length - 1].trim().split(',');
+            if (coords.length === 2) {
+                latitude = coords[0].trim().replace(',', '.');
+                longitude = coords[1].trim().replace(',', '.');
+            }
+        }
+
+        return {
+            id: String(firstItem.A),
+            address: addressItem.split(';')[0]?.trim() || '',
+            client: firstItem.F === 'Москва и область' ? firstItem.E : '',
+            info:
+                firstItem.F === 'Москва и область'
+                    ? firstItem.Y
+                    : firstItem.Y +
+                          '<br/>' +
+                          addressItem.split(';')[0]?.trim() +
+                          ', ' +
+                          addressItem.split(';')[1]?.trim() || '',
+            latitude: latitude,
+            longitude: longitude,
+            pallet: String(group.sumX),
+            type: firstItem.F || '',
+            volume: String(customRound(group.sumK, 1)),
+            volumeInPallet: String(customRound(group.sumVolumeInPallet, 1)),
+            weight: String(group.sumJ),
+            // inn: group.inn, // Добавляем ИНН в выходные данные
+        };
+    });
+};
+
+// const transformDataToTruckMapFormat = (forMapData) => {
+//   const groupedData = {};
+  
+//   // Группируем данные по ID (поле A)
+//   forMapData.forEach((item) => {
+//       const id = item.A;
+//       if (!groupedData[id]) {
+//           groupedData[id] = {
+//               items: [],
+//               sumJ: 0,
+//               sumK: 0,
+//               sumX: 0,
+//               sumVolumeInPallet: 0,
+//           };
+//       }
+
+//       groupedData[id].items.push(item);
+//       groupedData[id].sumJ += Number(item.J) || 0;
+//       groupedData[id].sumK += Number(item.K) || 0;
+
+//       const xValue = Number(item.X?.value) || 0;
+//       groupedData[id].sumX += xValue;
+
+//       if (xValue > 0) {
+//           groupedData[id].sumVolumeInPallet += Number(item.K);
+//       }
+//   });
+
+ 
+//   // Преобразуем в конечный формат
+//   return Object.values(groupedData).map(group => {
+//     const firstItem = group.items[0];
+//     const addressItem = firstItem.V?.[0] || '';
+    
+//     // Извлекаем координаты (последние 2 значения после ;)
+//     let latitude = '';
+//     let longitude = '';
+//     if (addressItem.includes(';')) {
+//       const parts = addressItem.split(';');
+//       const coords = parts[parts.length - 1].trim().split(',');
+//       if (coords.length === 2) {
+//         latitude = coords[0].trim().replace(',', '.');
+//         longitude = coords[1].trim().replace(',', '.');
+//       }
+//     }
+    
+//     return {
+//         id: String(firstItem.A),
+//         address: addressItem.split(';')[0]?.trim() || '',
+//         client: firstItem.F === 'Москва и область' ? firstItem.E : '',
+//         info: firstItem.Y || '',
+//         latitude: latitude,
+//         longitude: longitude,
+//         pallet: String(group.sumX),
+//         type: firstItem.F || '',
+//         volume: String(customRound(group.sumK,1)),
+//         volumeInPallet: String(group.sumVolumeInPallet),
+//         weight: String(group.sumJ),
+//     };
+//   });
+// };
 
 // Компонент для сортируемой строки
 
@@ -509,6 +659,648 @@ export default function DisplayData({
         row: null, // Строка, по которой был сделан правый клик
     });
 
+    //Обработчик отправки данных в Map
+    //  const sendDataToTruckMap = () => {
+    //      if (!data || data.length === 0) return;
+    //      const truckMapData = transformDataToTruckMapFormat(data);
+    //      const targetWindow = window.open(
+    //          //  'https://Romzes82.github.io/my-truck-map-pro',
+    //          'http://localhost:3001',
+    //          '_blank'
+    //      );
+
+    //      if (targetWindow) {
+    //          const timer = setInterval(() => {
+    //              targetWindow.postMessage(
+    //                  {
+    //                      type: 'UPDATE_TRUCK_MAP_DATA',
+    //                      payload: truckMapData,
+    //                  },
+    //                  //  'https://Romzes82.github.io'
+    //                  'http://localhost'
+    //              );
+
+    //              clearInterval(timer);
+    //          }, 1000);
+    //      }
+    //  };
+
+    // function sendDataToTruckMap() {
+    //     // 1. Получаем данные из sortedData (уже подготовленные данные)
+
+    //     if (!sortedData || sortedData.length === 0) {
+    //         console.error('Нет данных для отправки');
+    //         return;
+    //     }
+
+    //     // 2. Преобразуем данные в нужный формат
+    //     const truckMapData = transformDataToTruckMapFormat(sortedData);
+    //     console.log('Подготовленные данные для карты:', truckMapData);
+
+    //     // 3. Открываем карту в новой вкладке (localhost:3001)
+    //     const targetWindow = window.open('http://localhost:3001', '_blank');
+
+    //     // 4. Отправляем данные после загрузки окна
+    //     if (targetWindow) {
+    //         let attempts = 0;
+    //         const maxAttempts = 5;
+    //         const intervalTime = 500; // Проверяем каждые 500мс
+    //         const sendInterval = setInterval(() => {
+    //             attempts++;
+    //             try {
+    //                 targetWindow.postMessage(
+    //                     {
+    //                         type: 'UPDATE_TRUCK_MAP_DATA',
+    //                         payload: truckMapData,
+    //                     },
+
+    //                     'http://localhost:3001' // Origin получателя
+    //                 );
+
+    //                 console.log('Данные успешно отправлены на localhost:3001');
+
+    //                 clearInterval(sendInterval);
+    //             } catch (error) {
+    //                 console.warn(`Попытка ${attempts}: Окно еще не готово`);
+
+    //                 if (attempts >= maxAttempts) {
+    //                     console.error(
+    //                         'Не удалось отправить данные: превышено количество попыток'
+    //                     );
+
+    //                     clearInterval(sendInterval);
+    //                 }
+    //             }
+    //         }, intervalTime);
+    //     } else {
+    //         console.error('Не удалось открыть окно с картой');
+    //     }
+    //     }
+
+    // function sendDataToTruckMap() {
+    //     if (!sortedData?.length) {
+    //         console.error('Нет данных для отправки');
+
+    //         return;
+    //     }
+
+    //     const truckMapData = transformDataToTruckMapFormat(sortedData);
+
+    //     const targetUrl = 'http://localhost:3001';
+
+    //     const targetWindow = window.open(targetUrl, '_blank');
+
+    //     if (targetWindow) {
+    //         const waitForLoad = () => {
+    //             try {
+    //                 targetWindow.postMessage(
+    //                     {
+    //                         type: 'UPDATE_TRUCK_MAP_DATA',
+
+    //                         payload: truckMapData,
+    //                     },
+
+    //                     targetUrl
+    //                 );
+
+    //                 console.log('Данные отправлены');
+    //             } catch (error) {
+    //                 console.error('Ошибка отправки:', error);
+    //             }
+    //         };
+
+    //         // Ждем полной загрузки окна
+
+    //         targetWindow.addEventListener('load', waitForLoad);
+
+    //         // На всякий случай таймаут
+
+    //         setTimeout(() => {
+    //             targetWindow.removeEventListener('load', waitForLoad);
+    //         }, 5000);
+    //     }
+    // }
+
+    //Проверка на наличие координат точки перед отправкой на карту
+// async function ensureValidCoordinates(item) {
+//     // Если координаты валидны - возвращаем как есть
+
+//     if (
+//         item.latitude &&
+//         item.longitude &&
+//         item.latitude !== '0' &&
+//         item.longitude !== '0'
+//     ) {
+//         return item;
+//     }
+
+//     console.log(item.address);
+//     try {
+//         // Вызываемэндпоинт для геокодирования
+//         const response = await fetch(
+//             `http://localhost:8888/geo/get-coords-by-address?address=${encodeURIComponent(
+//                 item.address
+//             )}`
+//         );
+
+//         const data = await response.json();
+
+//         if (response.status !== 200) {
+//             throw new Error(data.error || 'Failed to geocode address');
+//         }
+
+//         // Обновляем sortedData, сохраняя исходный формат строки V
+//         const index = sortedData.findIndex((i) => i.A === item.id);
+
+//         if (index !== -1) {
+//             // Разбираем существующую строку V
+
+//             const vParts = sortedData[index].V[0].split(';');
+
+//             // Сохраняем все части кроме координат (если они есть)
+//             const addressPart = vParts[0] || item.address;
+//             const datePart = vParts.length > 1 ? vParts[1] : '';
+//             const otherParts = vParts.length > 2 ? vParts.slice(2) : [];
+
+//             // Собираем обратно с новыми координатами
+
+//             sortedData[index].V = [
+//                 `${addressPart};${datePart};${data.latitude},${
+//                     data.longitude
+//                 };${otherParts.join(';')}`.replace(/;+$/, ''), // Удаляем лишние ; в конце
+//             ];
+//         }
+
+//         // Возвращаем обновленный элемент
+
+//         return {
+//             ...item,
+//             latitude: data.latitude,
+//             longitude: data.longitude,
+//             // address: data.fullAddress || item.address,
+//             address: data.fullAddress || item.address,
+//         };
+//     } catch (error) {
+//         console.error(`Ошибка геокодирования для пункта ${item.id}:`, error);
+
+//         alert(
+//             `Не удалось определить координаты для адреса: ${item.address}\n\n${error.message}`
+//         );
+
+//         throw error;
+//     }
+    //     }    
+    
+    // async function updateCoordinatesInData(data, setData) {
+    // async function updateCoordinatesInData() {
+    //     try {
+    //         // Создаем копию данных для изменений
+
+    //         const updatedData = [...data];
+
+    //         let needsUpdate = false;
+
+    //         // Проходим по всем элементам данных
+
+    //         for (const item of updatedData) {
+    //             // Проверяем каждый элемент массива V
+
+    //             const updatedV = await Promise.all(
+    //                 // eslint-disable-next-line no-loop-func
+    //                 item.V.map(async (vItem, index) => {
+    //                     // Разбиваем строку на части
+
+    //                     const parts = vItem
+    //                         .split(';')
+    //                         .map((part) => part.trim());
+
+    //                     // Проверяем координаты (последняя часть)
+
+    //                     const coords = parts[parts.length - 1];
+
+    //                     if (
+    //                         coords !== '0,0' &&
+    //                         coords.split(',').every((coord) => !isNaN(coord))
+    //                     ) {
+    //                         return vItem; // Координаты уже валидны
+    //                     }
+
+    //                     // Получаем адрес (первая часть)
+
+    //                     const address = parts[0];
+
+    //                     if (!address) return vItem;
+
+    //                     try {
+    //                         // Запрашиваем координаты
+
+    //                         const response = await fetch(
+    //                             `http://localhost:8888/geo/get-coords-by-address?address=${encodeURIComponent(
+    //                                 address
+    //                             )}`
+    //                         );
+
+    //                         if (!response.ok)
+    //                             throw new Error('Ошибка геокодирования');
+
+    //                         const { latitude, longitude } =
+    //                             await response.json();
+
+    //                         // Собираем обновленную строку
+
+    //                         parts[
+    //                             parts.length - 1
+    //                         ] = `${latitude},${longitude}`;
+
+    //                         needsUpdate = true;
+
+    //                         return parts.join('; ');
+    //                     } catch (error) {
+    //                         console.error(
+    //                             `Ошибка геокодирования для адреса: ${address}`,
+    //                             error
+    //                         );
+
+    //                         return vItem; // Оставляем как есть в случае ошибки
+    //                     }
+    //                 })
+    //             );
+
+    //             // Если были изменения в V, обновляем элемент
+
+    //             if (item.V.some((v, i) => v !== updatedV[i])) {
+    //                 item.V = updatedV;
+    //             }
+    //         }
+
+    //         // Если были изменения, обновляем состояние
+
+    //         if (needsUpdate) {
+    //             onCellChange(updatedData);
+
+    //             return true; // Возвращаем true, если были изменения
+    //         }
+
+    //         return false; // Возвращаем false, если изменений не было
+    //     } catch (error) {
+    //         console.error('Ошибка при обновлении координат:', error);
+
+    //         return false;
+    //     }
+    // }  
+    
+async function updateCoordinatesInData() {
+    try {
+        const updatedData = [...data];
+
+        let needsUpdate = false;
+
+        const today = new Date().toISOString().split('T')[0]; // Формат YYYY-MM-DD
+
+        for (const item of updatedData) {
+            if (!item.V || item.V.length === 0) continue;
+
+            const vItem = item.V[0];
+
+            let parts = vItem.split(';').map((part) => part.trim());
+
+            let address = parts[0];
+
+            // Если строка содержит только адрес (нет разделителей ;)
+
+            if (parts.length === 1) {
+                // Преобразуем в формат "адрес; дата; координаты"
+
+                parts = [address, today, '0,0'];
+
+                needsUpdate = true;
+            }
+
+            // Если есть адрес и дата, но нет координат
+            else if (parts.length === 2) {
+                parts.push('0,0');
+
+                needsUpdate = true;
+            }
+
+            // Проверяем координаты (последняя часть)
+            const coords = parts[parts.length - 1];
+
+            if (
+                coords !== '0,0' &&
+                coords.split(',').every((coord) => !isNaN(coord))
+            ) {
+                continue;
+            }
+
+            if (!address) continue;
+
+            try {
+                const response = await fetch(
+                    `http://localhost:8888/geo/get-coords-by-address?address=${encodeURIComponent(
+                        address
+                    )}`
+                );
+
+                if (!response.ok) throw new Error('Ошибка геокодирования');
+
+                const { latitude, longitude } = await response.json();
+
+                // Обновляем координаты (последняя часть)
+
+                parts[parts.length - 1] = `${latitude},${longitude}`;
+
+                item.V[0] = parts.join('; ');
+
+                needsUpdate = true;
+            } catch (error) {
+                console.error(
+                    `Ошибка геокодирования для адреса: ${address}`,
+                    error
+                );
+
+                // Если не удалось получить координаты, оставляем "0,0"
+
+                item.V[0] = parts.join('; ');
+            }
+        }
+
+        if (needsUpdate) {
+            onCellChange(updatedData);
+
+            return true;
+        }
+
+        return false;
+    } catch (error) {
+        console.error('Ошибка при обновлении координат:', error);
+
+        return false;
+    }
+}
+    
+    // async function ensureValidCoordinates(item) {
+    //     // Если координаты валидны - возвращаем как есть
+
+    //     if (
+    //         item.latitude &&
+    //         item.longitude &&
+    //         item.latitude !== '0' &&
+    //         item.longitude !== '0'
+    //     ) {
+    //         return item;
+    //     }
+
+    //     try {
+    //         // Вызываем наш эндпоинт для геокодирования
+
+    //         const response = await fetch(
+    //             `/geo/get-coords-by-address?address=${encodeURIComponent(
+    //                 item.address
+    //             )}`
+    //         );
+
+    //         const data = await response.json();
+
+    //         if (response.status !== 200) {
+    //             throw new Error(data.error || 'Failed to geocode address');
+    //         }
+
+    //         // Обновляем sortedData (для последующих вызовов)
+
+    //         const updatedItem = {
+    //             ...item,
+
+    //             latitude: data.latitude,
+
+    //             longitude: data.longitude,
+
+    //             address: data.fullAddress || item.address,
+    //         };
+
+    //         // Находим и обновляем элемент в sortedData
+
+    //         const index = sortedData.findIndex((i) => i.A === item.id);
+
+    //         if (index !== -1) {
+    //             sortedData[index] = {
+    //                 ...sortedData[index],
+
+    //                 V: [
+    //                     `${data.fullAddress || item.address};${data.latitude},${
+    //                         data.longitude
+    //                     }`,
+    //                 ],
+    //             };
+    //         }
+
+    //         return updatedItem;
+    //     } catch (error) {
+    //         console.error(
+    //             `Ошибка геокодирования для пункта ${item.id}:`,
+    //             error
+    //         );
+
+    //         alert(
+    //             `Не удалось определить координаты для адреса: ${item.address}\n\n${error.message}`
+    //         );
+
+    //         throw error; // Останавливаем процесс
+    //     }
+    // }
+
+    //Обработчик отправки данных в Map
+async function sendDataToTruckMap() {
+    if (!sortedData || sortedData.length === 0) {
+        console.error('Нет данных для отправки');
+        alert('Нет данных для отправки');
+        return;
+    }
+
+    const wereUpdates = await updateCoordinatesInData();
+
+    if (wereUpdates) {
+        console.log('Координаты были обновлены');
+    } else {
+        console.log('Все координаты уже актуальны');
+    }
+
+    try {
+        // Преобразуем данные и проверяем координаты
+        let truckMapData = transformDataToTruckMapFormat(sortedData);
+
+        // // Проверяем и корректируем координаты
+        // for (let i = 0; i < truckMapData.length; i++) {
+        //     truckMapData[i] = await ensureValidCoordinates(truckMapData[i]);
+        // }
+
+        // // Фильтруем null (если были ошибки геокодирования)
+        // truckMapData = truckMapData.filter(Boolean);
+
+        if (truckMapData.length === 0) {
+            throw new Error('Нет данных с валидными координатами');
+        }
+
+        const targetUrl = 'http://localhost:3001';
+        const targetWindow = window.open(targetUrl, '_blank');
+
+        if (targetWindow) {
+            const sendMessage = () => {
+                try {
+                    targetWindow.postMessage(
+                        {
+                            type: 'UPDATE_TRUCK_MAP_DATA',
+                            payload: truckMapData,
+                        },
+
+                        targetUrl
+                    );
+
+                    console.log('Данные отправлены на', targetUrl);
+                } catch (error) {
+                    console.error('Ошибка отправки:', error);
+                }
+            };
+
+            // Первая попытка
+            sendMessage();
+
+            // Дополнительные попытки
+            let attempts = 0;
+            const maxAttempts = 5;
+            const interval = setInterval(() => {
+                attempts++;
+                sendMessage();
+
+                if (attempts >= maxAttempts) {
+                    clearInterval(interval);
+                    console.warn('Количество попыток отправки 5');
+                }
+            }, 500);
+        }
+    } catch (error) {
+        console.error('Ошибка подготовки данных:', error);
+        alert(`Ошибка подготовки данных: ${error.message}`);
+    }
+}
+
+    // эта функция рабочая 100% но без ensureValidCoordinates
+    // function sendDataToTruckMap() {
+    //     if (!sortedData || sortedData.length === 0) {
+    //         console.error('Нет данных для отправки');
+
+    //         return;
+    //     }
+
+    //     const truckMapData = transformDataToTruckMapFormat(sortedData);
+
+    //     const targetUrl = 'http://localhost:3001';
+
+    //     // Открываем окно и сохраняем ссылку
+
+    //     const targetWindow = window.open(targetUrl, '_blank');
+
+    //     if (targetWindow) {
+    //         // Функция для отправки данных
+
+    //         const sendMessage = () => {
+    //             try {
+    //                 targetWindow.postMessage(
+    //                     {
+    //                         type: 'UPDATE_TRUCK_MAP_DATA',
+
+    //                         payload: truckMapData,
+    //                     },
+
+    //                     targetUrl
+    //                 );
+
+    //                 console.log('Данные отправлены на', targetUrl);
+    //             } catch (error) {
+    //                 console.error('Ошибка отправки:', error);
+    //             }
+    //         };
+
+    //         // Пытаемся отправить сразу (если окно уже загружено)
+
+    //         sendMessage();
+
+    //         // Дополнительные попытки через интервал (на случай долгой загрузки)
+
+    //         let attempts = 0;
+
+    //         const maxAttempts = 5;
+
+    //         const interval = setInterval(() => {
+    //             attempts++;
+
+    //             sendMessage();
+
+    //             if (attempts >= maxAttempts) {
+    //                 clearInterval(interval);
+
+    //                 console.warn('Превышено количество попыток отправки');
+    //             }
+    //         }, 500);
+    //     }
+    // }
+
+    // по идее эта функция лучше, надо разбираться
+    // function sendDataToTruckMap() {
+    //     if (!sortedData?.length) {
+    //         console.error('Нет данных для отправки');
+
+    //         return;
+    //     }
+
+    //     const truckMapData = transformDataToTruckMapFormat(sortedData);
+
+    //     const targetUrl = 'http://localhost:3001';
+
+    //     const targetWindow = window.open(targetUrl, '_blank');
+
+    //     if (targetWindow) {
+    //         let isSent = false; // Флаг успешной отправки
+
+    //         let attempts = 0;
+
+    //         const maxAttempts = 5;
+
+    //         const sendMessage = () => {
+    //             if (isSent) return; // Не отправлять, если уже получилось
+
+    //             try {
+    //                 targetWindow.postMessage(
+    //                     { type: 'UPDATE_TRUCK_MAP_DATA', payload: truckMapData },
+
+    //                     targetUrl
+    //                 );
+
+    //                 console.log('Данные отправлены на', targetUrl);
+
+    //                 isSent = true; // Помечаем как успех
+
+    //                 clearInterval(interval); // Останавливаем интервал
+    //             } catch (error) {
+    //                 attempts++;
+
+    //                 console.warn(`Попытка ${attempts}: Окно ещё не готово`);
+
+    //                 if (attempts >= maxAttempts) {
+    //                     clearInterval(interval);
+
+    //                     console.error('Достигнут лимит попыток');
+    //                 }
+    //             }
+    //         };
+
+    //         const interval = setInterval(sendMessage, 500);
+
+    //         sendMessage(); // Первая попытка сразу
+    //     }
+    // }
+
+
     // Обработчик правого клика
     const handleContextMenu = (e, row) => {
         e.preventDefault(); // Отключаем стандартное контекстное меню браузера
@@ -535,7 +1327,7 @@ export default function DisplayData({
                 if (
                     companyName === 'Москва и область' ||
                     companyName === 'Zabiraem' ||
-                    companyName === 'Onvozim'
+                    companyName === 'Otvozim'
                 ) {
                     // Вызываем обработку для Москвы
                     updatedRow = await processMoscowItem(row);
@@ -1072,6 +1864,12 @@ export default function DisplayData({
                 >
                     {isCompact ? 'Обычный вид' : 'Компактный вид'}
                 </button>
+                <button
+                    onClick={sendDataToTruckMap}
+                    style={{ margin: '10px 5px', padding: '5px 15px' }}
+                >
+                    Отправить в карту
+                </button>
                 {showSumPanel && (
                     <div
                         style={{
@@ -1200,6 +1998,14 @@ export default function DisplayData({
                     </tbody>
                 </table>
             </DndContext>
+            <ExcelExporter
+                data={sortedData}
+                fileName="client_data.xlsx"
+                buttonLabel="Экспортровать в xlsx"
+                buttonClass="btn-export"
+            />
+            <hr/>
+            <SendDeliveryButton sortedData={sortedData} />
         </div>
     );
 }

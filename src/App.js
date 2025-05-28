@@ -4,6 +4,7 @@ import UploadFiles from './components/UploadFiles';
 import DisplayData from './components/DisplayData';
 import './App.css';
 import { formatCompanyData, formatDeliveryData } from './utils/helpersFunctions';
+import CloseWindowConfirm from './components/CloseWindowConfirm';
 
 // Вспомогательные функции
 function extractNumbersFromString(stringWithNumbers) {
@@ -65,6 +66,23 @@ function extractNumbersFromString(stringWithNumbers) {
 //     }
 
 // };
+
+// хук для отслеживания закрытия окна
+const useCloseConfirm = (isActive) => {
+    useEffect(() => {
+        if (!isActive) return;
+
+        const handler = (e) => {
+            e.preventDefault();
+
+            e.returnValue = '';
+        };
+
+        window.addEventListener('beforeunload', handler);
+
+        return () => window.removeEventListener('beforeunload', handler);
+    }, [isActive]);
+};
 
 
 
@@ -235,6 +253,9 @@ export default function App() {
         fetchTkList(); 
     }, []);
 
+    // активируем хук смотрящий за закрытие окна
+    useCloseConfirm(true);
+
     // Сохранение данных
 
     useEffect(() => {
@@ -264,6 +285,25 @@ export default function App() {
             })
         );
     }, []);
+
+    // перед уходом со страницы
+
+    // let pending = false;
+
+    // useEffect(() => {
+    //     if (!pending) return;
+
+    //     function beforeUnload(e) {
+    //         e.preventDefault();
+    //         e.returnValue = '';
+    //     }
+
+    //     window.addEventListener('beforeunload', beforeUnload);
+
+    //     return () => {
+    //         window.removeEventListener('beforeunload', beforeUnload);
+    //     };
+    // }, [pending]);
 
     const handleUpload = useCallback(
         async (newData) => {
@@ -361,6 +401,7 @@ export default function App() {
 
     return (
         <div>
+            {/* <CloseWindowConfirm /> */}
             <DisplayData
                 data={tableData}
                 order={tableOrder}
