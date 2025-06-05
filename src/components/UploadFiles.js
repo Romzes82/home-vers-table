@@ -220,7 +220,7 @@ const UploadFiles = ({ onUpload }) => {
 
             // Проверка соотношения файлов
             if (excelFiles.length !== 2 || !textFile) {
-                alert('Некорректный набор файлов: нужно 2 Excel и 1 TXT');
+                alert('Некорректный набор файлов: нужно 2 Excel и 1 txt');
                 return;
             }
 

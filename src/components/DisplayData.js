@@ -1868,7 +1868,7 @@ async function sendDataToTruckMap() {
                     onClick={sendDataToTruckMap}
                     style={{ margin: '10px 5px', padding: '5px 15px' }}
                 >
-                    Отправить в карту
+                    Открыть на карте
                 </button>
                 {showSumPanel && (
                     <div
