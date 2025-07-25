@@ -22,7 +22,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { customRound, getGroupStatus } from '../utils/helpersFunctions';
 import ExcelExporter from './ExcelExporter';
 import SendDeliveryButton from './SendDeliveryButton';
+// import localforage from 'localforage';
+import CallComponent from './CallComponent';
 // import localForage from 'localforage';
+
 
 // //// Функция преобразования данных
 const transformDataToTruckMapFormat = (forMapData) => {
@@ -93,8 +96,10 @@ const transformDataToTruckMapFormat = (forMapData) => {
             info:
                 firstItem.F === 'Москва и область'
                     ? firstItem.Y
-                    : firstItem.Y +
-                          '<br/>' +
+                    : firstItem.Y.replace(/^\s*[\r\n]/gm, '').trim() + //здесь мы удалили пустые строки идущие после переноса строк
+                          '<br>' + //это для балуна
+                          '\n' + //это для title в li
+                          '\n' +
                           addressItem.split(';')[0]?.trim() +
                           ', ' +
                           addressItem.split(';')[1]?.trim() || '',
@@ -637,7 +642,7 @@ export default function DisplayData({
     const [hiddenColumns, setHiddenColumns] = useState(COLUMN_HIDDEN);
     const [mask, setMask] = useState(COLUMN_ORDER);
     const [selectedIds, setSelectedIds] = useState(new Set());
-    const [showSumPanel, setShowSumPanel] = useState(true);
+    // const [showSumPanel, setShowSumPanel] = useState(true);
     const [isCompact, setIsCompact] = useState(true);
     const cellsRef = useRef([]);
     // Реф для отслеживания выполнения начальной сортировки
@@ -658,6 +663,13 @@ export default function DisplayData({
         y: 0,
         row: null, // Строка, по которой был сделан правый клик
     });
+
+    // Состояние для кнопки Позвонить
+    const [
+        listTelForShowCall,
+        setListTelForShowCall,
+    ] = useState(null);
+    
 
     //Обработчик отправки данных в Map
     //  const sendDataToTruckMap = () => {
@@ -997,7 +1009,8 @@ async function updateCoordinatesInData() {
 
             try {
                 const response = await fetch(
-                    `http://localhost:8888/geo/get-coords-by-address?address=${encodeURIComponent(
+                    // `http://localhost:8888/geo/get-coords-by-address?address=${encodeURIComponent(
+                    `/geo/get-coords-by-address?address=${encodeURIComponent(
                         address
                     )}`
                 );
@@ -1141,7 +1154,8 @@ async function sendDataToTruckMap() {
             throw new Error('Нет данных с валидными координатами');
         }
 
-        const targetUrl = 'http://localhost:3001';
+        // const targetUrl = 'http://localhost:3001'; // //
+        const targetUrl = `http://${window.location.hostname}:3001`;
         const targetWindow = window.open(targetUrl, '_blank');
 
         if (targetWindow) {
@@ -1531,9 +1545,32 @@ async function sendDataToTruckMap() {
         let j = 0,
             k = 0,
             x = 0;
+        const first = [...selectedIds];
+
+        if (first.length === 1) {
+            //    console.log(first[0]);
+            const filtered = data.filter((item) => first[0] === item.B);
+
+            // ЗДЕСЬ НАДО НАПИСАТЬ UseState - ShowButtonTelephoneCall в true или нет
+            // если да, то передаем пропсы в компонент. А ниже если true, то отображаем кнопку
+            const result = filtered[0];
+
+            // console.log(extractPhoneNumbers(filtered[0]));
+            // console.log(result.F.toLowerCase().startsWith('тк'));
+            result.F.toLowerCase().startsWith('тк')
+                ? setListTelForShowCall(result.V[0])
+                : setListTelForShowCall(result.Y);
+            //  setListTelForShowCall(result.V[0]);
+        } else { 
+            setListTelForShowCall(null);
+        }
+       
+
         data.forEach((row) => {
             if (selectedIds.has(row.B)) {
                 // console.log(Number(row.X.value));
+                // console.log(row);
+                
                 j += Number(row.J) || 0;
                 k += Number(row.K) || 0;
                 x += Number(row.X.value) || 0;
@@ -1574,17 +1611,17 @@ async function sendDataToTruckMap() {
 
     // Единоразовая сортировка данных
 
-    const sortedDataOnceInTheStartApp = [...data].sort((a, b) => {
-        // 1. Сортировка по столбцу F (возрастание)
-        const compareF = compareValues(a.F, b.F);
-        if (compareF !== 0) return compareF;
-        // 2. Сортировка по столбцу S (возрастание)
-        return compareValues(a.S, b.S);
-        // const compareS = compareValues(a.S, b.S);
-        // if (compareS !== 0) return compareS;
-        // 3. Сортировка по столбцу E (убывание)
-        // return compareValues(b.E, a.E);
-    });
+    // const sortedDataOnceInTheStartApp = [...data].sort((a, b) => {
+    //     // 1. Сортировка по столбцу F (возрастание)
+    //     const compareF = compareValues(a.F, b.F);
+    //     if (compareF !== 0) return compareF;
+    //     // 2. Сортировка по столбцу S (возрастание)
+    //     return compareValues(a.S, b.S);
+    //     // const compareS = compareValues(a.S, b.S);
+    //     // if (compareS !== 0) return compareS;
+    //     // 3. Сортировка по столбцу E (убывание)
+    //     // return compareValues(b.E, a.E);
+    // });
 
     // Определение изменений между версиями файлов
     const getChangedCells = () => {
@@ -1667,7 +1704,7 @@ async function sendDataToTruckMap() {
 
         if (changedCells.has(`${rowIndex.B}-${header}`)) {
             // return { ...style, backgroundColor: 'yellow' };
-            styles.backgroundColor = 'yellow';
+            styles.backgroundColor = '#f6f681';
         }
 
         return styles;
@@ -1870,7 +1907,7 @@ async function sendDataToTruckMap() {
                 >
                     Открыть на карте
                 </button>
-                {showSumPanel && (
+                {/* {showSumPanel && ( */}
                     <div
                         style={{
                             padding: '10px',
@@ -1943,8 +1980,15 @@ async function sendDataToTruckMap() {
                         >
                             Сбросить
                         </button>
+                        {listTelForShowCall && (
+                            <CallComponent
+                                listTelForShowCall={
+                                    listTelForShowCall
+                                }
+                            />
+                        )}
                     </div>
-                )}
+                 {/* )} */}
             </div>
 
             <DndContext
@@ -2004,7 +2048,7 @@ async function sendDataToTruckMap() {
                 buttonLabel="Экспортровать в xlsx"
                 buttonClass="btn-export"
             />
-            <hr/>
+            <hr />
             <SendDeliveryButton sortedData={sortedData} />
         </div>
     );

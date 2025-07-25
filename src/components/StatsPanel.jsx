@@ -1,6 +1,7 @@
 import { customRound } from "../utils/helpersFunctions";
 
 const StatsPanel = ({ data }) => {
+   
     const calculateSums = () => {
         let moJ = 0,
             moK = 0,

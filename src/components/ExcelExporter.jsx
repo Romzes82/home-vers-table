@@ -117,7 +117,8 @@ const ExcelExporter = ({
             }
             if (item.F === 'Otvozim') {
                 item.F = 'Отвозим';
-            }            
+            }    
+        
             //     item.F = 'Zabiraem' ? 'Забираем' : item.F;
             // item.F = 'Otvozim' ? 'Отвозим' : item.F;
             const isTk = item.F?.toLowerCase()?.startsWith('тк');
@@ -147,17 +148,29 @@ const ExcelExporter = ({
                     case 'X_pallets':
                         return getSafeValue(item.X?.value);
 
-                    case 'Z_bid':
-                        return getSafeValue(item.Z?.bid);
+                    case 'Z_bid': //делаем false нулем "0", а true ИСТИНОЙ - "ИСТИНА"
+                        return getSafeValue(
+                            item.Z?.bid ? item.Z?.bid : +item.Z?.bid
+                        );
 
                     case 'Z_crossedCellAddress':
-                        return getSafeValue(item.Z?.crossedCellAddress);
+                        return getSafeValue(
+                            item.Z?.crossedCellAddress
+                                ? item.Z?.crossedCellAddress
+                                : +item.Z?.crossedCellAddress
+                        );
 
                     case 'Z_crossedCellClient':
-                        return getSafeValue(item.Z?.crossedCellClient);
+                        return getSafeValue(
+                            item.Z?.crossedCellClient
+                                ? item.Z?.crossedCellClient
+                                : +item.Z?.crossedCellClient
+                        );
 
                     case 'Z_marker':
-                        return getSafeValue(item.Z?.marker);
+                        return getSafeValue(
+                            item.Z?.marker ? item.Z?.marker : +item.Z?.marker
+                        );
 
                     default:
                         return getSafeValue(item[column]);

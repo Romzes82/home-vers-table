@@ -1,0 +1,15 @@
+.tel-num {
+    cursor: pointer;
+    text-decoration: none;
+    color: black;
+}
+
+.tel-num:hover {
+   background-color: white;
+  /* color: rgb(231, 22, 22); */
+  color: #d53c00;
+  /* border: black; */
+  /* text-shadow: 1px black; */
+  /* text-decoration: overline; */
+  /* text-shadow: 1px 1px 1px black; */
+}

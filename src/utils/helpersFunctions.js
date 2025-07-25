@@ -6,8 +6,10 @@ export const detectCompany = (fileName) => {
     let sheetName;
     switch (fileName) {
         case 'Table_1c_olma.xls':
+        // case 'Table_1c_olma.xlsx':
             // console.log(`название файла Table_1c_olma.xls ${fileName}`);
-            decoding = true;
+            // decoding = true;
+            decoding = false;
             startRow = START_ROW_IN_FILE_OLMA;
             sheetName = NAME_SHEET_OLMA;
             break;

@@ -4,7 +4,7 @@ import UploadFiles from './components/UploadFiles';
 import DisplayData from './components/DisplayData';
 import './App.css';
 import { formatCompanyData, formatDeliveryData } from './utils/helpersFunctions';
-import CloseWindowConfirm from './components/CloseWindowConfirm';
+// import CloseWindowConfirm from './components/CloseWindowConfirm';
 
 // Вспомогательные функции
 function extractNumbersFromString(stringWithNumbers) {
@@ -90,6 +90,8 @@ const processMoscowItem = async (item) => {
     // Проверка обязательных полей
 
     if (!item.S && !item.E) return;
+    // if (!item.S) { item.S = 0 };
+    // console.log(item.S, item.E);
 
     try {
         // Подготовка параметров
@@ -99,7 +101,7 @@ const processMoscowItem = async (item) => {
 
         // Запрос к новому эндпоинту
         const response = await fetch(
-            `http://localhost:8888/delivery/get-by-inn-and-client?${params}`
+            `/delivery/get-by-inn-and-client?${params}` // благодаря стирочке в package.json "proxy": "http://localhost:8888",
         );
 
         // Обработка 404 как пустого результата
@@ -135,7 +137,9 @@ const processTkItem = async (item, col="L") => {
 
         if (numbers.length === 0) return { ...item, V: [] };
         const response = await fetch(
-            'http://localhost:8888/tk/get-by-numbers',
+            // 'http://localhost:8888/tk/get-by-numbers',
+            '/tk/get-by-numbers',
+
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -173,7 +177,9 @@ const processTkItemByName = async (item) => {
     let url;
     let param;
     
-    url = 'http://localhost:8888/tk/get-by-name';
+    // url = 'http://localhost:8888/tk/get-by-name';
+    url = '/tk/get-by-name';
+
     param = `name=${item.F}`;
 
     try {
@@ -235,7 +241,8 @@ export default function App() {
         const fetchTkList = async () => {
             try {
                 const response = await fetch(
-                    'http://localhost:8888/tk/get-names'
+                    // 'http://localhost:8888/tk/get-names'
+                    '/tk/get-names'
                 );
                 if (!response.ok) {
                     throw new Error('Ошибка при загрузке списка ТК');
@@ -277,7 +284,7 @@ export default function App() {
                     return await processMoscowItem(item);
                 }
 
-                if (item.F.startsWith('тк')) {
+                if (item.F.toLowerCase().startsWith('тк')) {
                     return await processTkItem(item);
                 }
 

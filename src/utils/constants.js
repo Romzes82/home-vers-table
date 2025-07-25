@@ -1,9 +1,10 @@
-export const START_ROW_IN_FILE_ASD = 3;
+export const START_ROW_IN_FILE_ASD = 3; // захватываем названия столбцов
 export const START_ROW_IN_FILE_OLMA = 3;
 export const NAME_FILE_ASD = "ASD";
 export const NAME_FILE_OLMA = 'OLMA';
 export const NAME_SHEET_ASD = 'TDSheet';
-export const NAME_SHEET_OLMA = 'Sheet1';
+export const NAME_SHEET_OLMA = 'TDSheet';
+// export const NAME_SHEET_OLMA = 'Sheet1';
 
 export const TABLE_HEAD = {
     A: '№',

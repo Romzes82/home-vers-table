@@ -51,7 +51,9 @@ const SendDeliveryButton = ({ sortedData }) => {
 
         try {
             const filteredData = sortedData.filter(
-                (item) => item.F === 'Москва и область'
+                (item) =>
+                    item.F === 'Москва и область' ||
+                    item.F === 'Zabiraem'
             );
 
             for (const item of filteredData) {
@@ -73,14 +75,19 @@ const SendDeliveryButton = ({ sortedData }) => {
                         continue;
                     }
 
+                    // пропишем дату в Забираем
+                    if (item.F === "Zabiraem") {
+                        item.D = sortedData[0].D;
+                    }
+
                     const payload = {
-                        inn: item.S,
+                        inn: item.S ? item.S : "0",
 
                         client: item.E,
 
                         address: addressData.address,
 
-                        date: formatDate(item.D),
+                        date: formatDate(item.D), 
 
                         latitude: addressData.latitude,
 
@@ -93,7 +100,9 @@ const SendDeliveryButton = ({ sortedData }) => {
                     // );
 
                     const response = await fetch(
-                        'http://localhost:8888/api/add-delivery',
+                        // 'http://localhost:8888/api/add-delivery',
+                        '/api/add-delivery',
+
                         {
                             method: 'POST',
 

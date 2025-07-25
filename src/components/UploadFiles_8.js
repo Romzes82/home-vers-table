@@ -34,16 +34,13 @@ const UploadFiles = ({ onUpload }) => {
                 if (key === 'A')
                     // "1" -> 1
                     processed[key] = Number(processed[key]);
-                // if (key === 'D')
-                //     // "1" -> 1
-                //     processed[key] = fullingDate(data[0].D);
 
                 if (typeof processed[key] !== 'number') {
-                    if (decoding)
-                        processed[key] = encodedDataWin1251(processed[key]);
-                } else {
-                    if (key === 'D')
-                        processed[key] = fullingDate(processed[key]);
+                    // if (decoding)
+                        // processed[key] = encodedDataWin1251(processed[key]);
+                // } else {
+                    // if (key === 'D')
+                    //     processed[key] = fullingDate(processed[key]);
 
                     if (key === 'J')
                         // вес
@@ -55,13 +52,6 @@ const UploadFiles = ({ onUpload }) => {
                 }
             }
 
-            // let str = 'Москва и область, 1,()';
-            // const after = str.slice(str.indexOf('-') + 1);
-            // console.log(after); // ' 1,()'
-            // const before = str.slice(0, str.indexOf(','));
-            // console.log(before); // 'Москва и область'
-            // Делать усечение на стадии формирования данных из xlsx здесь т.е. в UploadFiles
-
             arrKeys.forEach((elemInArr) => {
                 // processed[elemInArr] = processed[elemInArr] || '';
                 if (elemInArr in element) {
@@ -71,17 +61,9 @@ const UploadFiles = ({ onUpload }) => {
                     ) {
                         processed['F'] = 'd_Доставка по межгороду за наш счет';
                     }
-                    if (
-                        processed['F'] === 'ТК' //для ОлМы
-                    ) {
-                        processed['F'] = 'тк';
-                    }                    
                     if (processed['G'] === '') {
                         processed['G'] = 0;
                     }
-                    if (processed['C'] === '') {
-                        processed['C'] = processed['C'].trimEnd(); // у накладных ОлМы в конце пробел
-                    }                    
                 } else {
                     processed[elemInArr] = '';
                 }
@@ -133,7 +115,7 @@ const UploadFiles = ({ onUpload }) => {
                             B: (index + 1).toString(),
                             C: '',
                             D: '',
-                            E: '.',
+                            E: '',
                             F: 'Zabiraem',
                             G: 0,
                             H: 0,
