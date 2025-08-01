@@ -25,10 +25,21 @@ const UploadFiles = ({ onUpload }) => {
         return decode(row, { mode: 'replacement' });
     };
 
+    // function compareDates(str1, str2) {
+    //     const [d1, m1, y1] = str1.split('.').map(Number);
+    //     const [d2, m2, y2] = str2.split('.').map(Number);
+
+    //     if (y1 !== y2) return y1 - y2;
+    //     if (m1 !== m2) return m1 - m2;
+    //     return d1 - d2;
+    // }
+
     const processExcelData = (data, decoding) => {
         return data.map((element) => {
             // обработанный элемент-объект
             const processed = { ...element };
+            // const now = new Date(); *
+            // const today = `${now.getDate()}.0${now.getMonth()+1}.${now.getFullYear()}`;
 
             for (const key in processed) {
                 if (key === 'A')
@@ -38,6 +49,12 @@ const UploadFiles = ({ onUpload }) => {
                 //     // "1" -> 1
                 //     processed[key] = fullingDate(data[0].D);
 
+                // if (key === 'D') { *
+                //     // processed[key] = fullingDate(processed[key]);  
+                //     // console.log(compareDates('02.08.2025', '1.08.2025') >= 1);
+                //     // console.log(compareDates(processed[key], today));
+                // }
+                                        
                 if (typeof processed[key] !== 'number') {
                     if (decoding)
                         processed[key] = encodedDataWin1251(processed[key]);
@@ -185,6 +202,33 @@ const UploadFiles = ({ onUpload }) => {
         });
     };
 
+    // const readExcelFile = (file, index) => {
+    //     return new Promise((resolve, reject) => {
+    //         const reader = new FileReader();
+
+    //         try {
+    //             const { decoding, sheetName, startRow } = detectCompany(
+    //                 file.name
+    //             );
+
+    //             reader.onload = (event) => {
+    //                 const data = new Uint8Array(event.target.result);
+    //                 const result = excelToJson({ source: data });
+    //                 const sheetData = result[sheetName].slice(startRow);
+    //                 const processedData = processExcelData(sheetData, decoding);
+    //                 console.log(result[sheetName].slice(0,1))
+    //                 resolve(processedData);
+    //             };
+
+    //             reader.onerror = (error) => reject(error);
+
+    //             reader.readAsArrayBuffer(file);
+    //         } catch (err) {
+    //             reject(err);
+    //         }
+    //     });
+    // };
+
     const readExcelFile = (file, index) => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -197,20 +241,90 @@ const UploadFiles = ({ onUpload }) => {
                 reader.onload = (event) => {
                     const data = new Uint8Array(event.target.result);
                     const result = excelToJson({ source: data });
+                    const firstRow = result[sheetName]?.slice(0, 1)?.[0];
+
+                    // Проверка наличия данных
+                    if (!firstRow || !firstRow.A) {
+                        return reject(
+                            new Error(
+                                'Неверный формат файла: отсутствует заголовок'
+                            )
+                        );
+                    }
+
+                    // Извлечение дат из строки
+                    const dateMatch = firstRow.A.match(/\d{2}\.\d{2}\.\d{4}/g);
+                    if (!dateMatch || dateMatch.length !== 2) {
+                        return reject(
+                            new Error('Не удалось извлечь даты из отчета')
+                        );
+                    }
+
+                    const [startDateStr, endDateStr] = dateMatch;
+
+                    // 1. Проверка равенства дат
+                    if (startDateStr !== endDateStr) {
+                        // eslint-disable-next-line no-restricted-globals
+                        const shouldContinue = confirm(
+                            `Даты в отчете не совпадают:\n${startDateStr} ≠ ${endDateStr}\n\nПродолжить обработку?`
+                        );
+                        if (!shouldContinue) {
+                            return reject(
+                                new Error(
+                                    'Обработка отменена пользователем (даты не совпадают)'
+                                )
+                            );
+                        }
+                    }
+
+                    // 2. Проверка что дата >= сегодня
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0); // Сбрасываем время для точного сравнения
+
+                    const parseDate = (str) => {
+                        const [day, month, year] = str.split('.');
+                        return new Date(year, month - 1, day);
+                    };
+
+                    const reportDate = parseDate(startDateStr);
+
+                    if (reportDate <= today) {
+                        // eslint-disable-next-line no-restricted-globals
+                        const shouldContinue = confirm(
+                            `Дата в отчете (${startDateStr}) должна быть БОЛЬШЕ сегодняшней (${formatDate(
+                                today
+                            )})\n\nПродолжить обработку?`
+                        );
+                        if (!shouldContinue) {
+                            return reject(
+                                new Error(
+                                    'Обработка отменена пользователем (некорректная дата)'
+                                )
+                            );
+                        }
+                    }
+
+                    // Если все проверки пройдены или пользователь согласился продолжить
                     const sheetData = result[sheetName].slice(startRow);
                     const processedData = processExcelData(sheetData, decoding);
-
                     resolve(processedData);
                 };
 
                 reader.onerror = (error) => reject(error);
-
                 reader.readAsArrayBuffer(file);
             } catch (err) {
                 reject(err);
             }
         });
     };
+
+    // Вспомогательная функция для форматирования даты
+    function formatDate(date) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}.${month}.${year}`;
+    }
 
     const handleFilesProcessing = async (files) => {
         setIsLoading(true);
@@ -261,7 +375,7 @@ const UploadFiles = ({ onUpload }) => {
         } catch (err) {
             setError(err.message);
 
-            onUpload([]);
+            // onUpload([]);
         } finally {
             setIsLoading(false);
         }

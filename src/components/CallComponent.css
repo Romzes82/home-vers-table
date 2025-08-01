@@ -1,11 +1,24 @@
+/* .tel-num {
+    cursor: pointer;
+    text-decoration: none;
+    color: black;
+} */
+
 .tel-num {
+    background-color: rgb(224, 224, 224);
+    /* background-image: radial-gradient(rgb(210, 210, 210), white); */
+    /* background-image: linear-gradient(white 0%, rgb(221, 221, 221) 50%, #ffffff 100%); */
+    border-radius: 6px;
+    padding: 0px 6px 0px 6px;
+    /* margin: 5px 0 5px 0; */
     cursor: pointer;
     text-decoration: none;
     color: black;
 }
 
 .tel-num:hover {
-   background-color: white;
+  background-image: radial-gradient(white);
+   /* background-color: white; */
   /* color: rgb(231, 22, 22); */
   color: #d53c00;
   /* border: black; */

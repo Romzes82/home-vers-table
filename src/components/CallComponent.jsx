@@ -10,13 +10,15 @@ const CallComponent = ({ listTelForShowCall }) => {
     // };
 
     return useMemo(() => {
+        if (!extractPhoneNumbers(listTelForShowCall)) return;
+        
         return (
             <div
                 style={{
                     // margin: '0px 0px 10px 0',
                     padding: '0px 20px 0px 20px',
                     // border: '1px solid #ff9900',
-                    border: '1px solid #00000080',
+                    border: '1px solid #7b7b7b80',
                     borderRadius: '4px',
                     display: 'flex',
                     gap: '20px',
@@ -45,7 +47,7 @@ const CallComponent = ({ listTelForShowCall }) => {
 
                         return (
                             <span key={index}>
-                                {index > 0 && ' || '}
+                                {index > 0 && ' '}
                                 <a
                                     className="tel-num"
                                     href={`tel:+7${el}`}
